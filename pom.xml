@@ -36,11 +36,11 @@
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-mysql</artifactId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -78,9 +78,9 @@
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
                 <configuration>
-                    <url>${env.DATABASE_URL:-jdbc:mysql://localhost:3306/habsida_store?useUnicode=true&amp;characterEncoding=utf8}</url>
-                    <user>${env.DATABASE_USERNAME:-root}</user>
-                    <password>${env.DATABASE_PASSWORD:-}</password>
+                    <url>${env.DATABASE_URL:-jdbc:postgresql://localhost:5432/habsida_store}</url>
+                    <user>${env.DATABASE_USERNAME:-postgres}</user>
+                    <password>${env.DATABASE_PASSWORD:-postgres}</password>
                 </configuration>
             </plugin>
         </plugins>

@@ -4,6 +4,7 @@ import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,11 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Drops all FKs, alters all id/FK columns to BIGINT, re-adds FKs.
+ * Drops all FKs, alters all id/FK columns to BIGINT, re-adds FKs (MySQL only).
  * Fixes schema validation when DB was created with INT (e.g. by Hibernate).
  * <p>
- * PK columns: MODIFY id BIGINT NOT NULL AUTO_INCREMENT (after DROP/ADD PK to avoid MySQL 1171).
- * FK columns: MODIFY ... BIGINT NULL (or NOT NULL to match business logic).
+ * On PostgreSQL this migration is a no-op: V1__init.sql already uses BIGSERIAL/BIGINT.
  * <p>
  * If this migration failed and Flyway is dirty, repair before re-running:
  * DELETE FROM flyway_schema_history WHERE success = 0;
@@ -25,13 +25,21 @@ public class V3__AlterIdsToBigint extends BaseJavaMigration {
 
     @Override
     public void migrate(Context context) throws Exception {
-        // Do NOT close the connection - Flyway needs it after the migration.
         Connection conn = context.getConnection();
+        if (isPostgreSQL(conn)) {
+            return; // V1 already uses BIGINT; nothing to do
+        }
         setForeignKeyChecks(conn, false);
         dropAllForeignKeys(conn);
         runAlterStatements(conn);
         setForeignKeyChecks(conn, true);
         addForeignKeys(conn);
+    }
+
+    private boolean isPostgreSQL(Connection conn) throws SQLException {
+        DatabaseMetaData meta = conn.getMetaData();
+        String product = meta.getDatabaseProductName();
+        return product != null && product.toLowerCase().contains("postgresql");
     }
 
     private void setForeignKeyChecks(Connection conn, boolean on) throws SQLException {

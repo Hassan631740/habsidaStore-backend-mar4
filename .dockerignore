@@ -1,0 +1,22 @@
+# Git and IDE
+.git
+.gitignore
+.idea
+*.iml
+.cursor
+*.md
+
+# Build outputs (we build inside Docker)
+target/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Env (don't bake secrets into image)
+.env
+.env.*
+
+# Tests and local DB (optional)
+*.log
