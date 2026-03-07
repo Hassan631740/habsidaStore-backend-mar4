@@ -11,11 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CustomerAddress {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class CustomerAddress extends BaseEntity {
 
     @Column(name = "customer_id")
     private Long customerId;

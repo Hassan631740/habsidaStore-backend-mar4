@@ -11,11 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserStoreAccess {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class UserStoreAccess extends BaseEntity {
 
     @Column(name = "user_id")
     private Long userId;

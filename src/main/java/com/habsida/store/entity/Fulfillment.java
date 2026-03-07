@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
-
 @Entity
 @Table(name = "fulfillment")
 @Getter
@@ -13,11 +11,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Fulfillment {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Fulfillment extends BaseAuditedEntity {
 
     @Column(name = "order_id")
     private Long orderId;
@@ -28,10 +22,4 @@ public class Fulfillment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", insertable = false, updatable = false)
     private Order order;
-
-    @Column(name = "created_at")
-    private Instant createdAt;
-
-    @Column(name = "updated_at")
-    private Instant updatedAt;
 }

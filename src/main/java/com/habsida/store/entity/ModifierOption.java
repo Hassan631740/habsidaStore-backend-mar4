@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 
 @Entity
 @Table(name = "modifier_options")
@@ -14,11 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ModifierOption {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class ModifierOption extends BaseAuditedEntity {
 
     @Column(name = "modifier_group_id")
     private Long modifierGroupId;
@@ -32,10 +27,4 @@ public class ModifierOption {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "modifier_group_id", insertable = false, updatable = false)
     private ModifierGroup modifierGroup;
-
-    @Column(name = "created_at")
-    private Instant createdAt;
-
-    @Column(name = "updated_at")
-    private Instant updatedAt;
 }

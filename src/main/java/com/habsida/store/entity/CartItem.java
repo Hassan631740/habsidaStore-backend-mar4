@@ -11,11 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CartItem {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class CartItem extends BaseEntity {
 
     @Column(name = "cart_id")
     private Long cartId;

@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 
 @Entity
 @Table(name = "store_delivery_settings")
@@ -14,11 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StoreDeliverySettings {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class StoreDeliverySettings extends BaseAuditedEntity {
 
     @Column(name = "store_id")
     private Long storeId;
@@ -33,10 +28,4 @@ public class StoreDeliverySettings {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", insertable = false, updatable = false)
     private Store store;
-
-    @Column(name = "created_at")
-    private Instant createdAt;
-
-    @Column(name = "updated_at")
-    private Instant updatedAt;
 }

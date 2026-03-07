@@ -11,11 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StoreDeliveryRestriction {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class StoreDeliveryRestriction extends BaseEntity {
 
     @Column(name = "store_id")
     private Long storeId;

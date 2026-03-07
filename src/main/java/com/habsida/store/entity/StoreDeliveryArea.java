@@ -11,11 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StoreDeliveryArea {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class StoreDeliveryArea extends BaseEntity {
 
     @Column(name = "store_id")
     private Long storeId;

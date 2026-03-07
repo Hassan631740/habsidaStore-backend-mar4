@@ -13,11 +13,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OrderItemModifier {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class OrderItemModifier extends BaseEntity {
 
     @Column(name = "order_item_id")
     private Long orderItemId;

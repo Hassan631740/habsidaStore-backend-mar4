@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
-
 @Entity
 @Table(name = "customers")
 @Getter
@@ -13,11 +11,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Customer {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Customer extends BaseAuditedEntity {
 
     @Column(name = "user_id")
     private Long userId;
@@ -34,10 +28,4 @@ public class Customer {
     private String lastName;
 
     private String phone;
-
-    @Column(name = "created_at")
-    private Instant createdAt;
-
-    @Column(name = "updated_at")
-    private Instant updatedAt;
 }

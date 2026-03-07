@@ -13,11 +13,7 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StoreBreaks {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class StoreBreaks extends BaseEntity {
 
     @Column(name = "store_id")
     private Long storeId;

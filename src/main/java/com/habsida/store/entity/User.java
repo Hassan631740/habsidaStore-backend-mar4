@@ -1,9 +1,8 @@
 package com.habsida.store.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.Instant;
 
 @Entity
 @Table(name = "users")
@@ -12,21 +11,12 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class User extends BaseAuditedEntity {
 
     @Column(nullable = false, unique = true)
     private String email;
 
+    @JsonIgnore
     @Column(name = "password_hash")
     private String passwordHash;
-
-    @Column(name = "created_at")
-    private Instant createdAt;
-
-    @Column(name = "updated_at")
-    private Instant updatedAt;
 }

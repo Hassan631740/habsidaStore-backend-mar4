@@ -10,11 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Address {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Address extends BaseEntity {
 
     @Column(name = "street_line1")
     private String streetLine1;

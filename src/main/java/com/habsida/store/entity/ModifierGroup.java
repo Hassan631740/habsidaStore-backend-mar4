@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
-
 @Entity
 @Table(name = "modifier_groups")
 @Getter
@@ -13,11 +11,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ModifierGroup {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class ModifierGroup extends BaseAuditedEntity {
 
     private String name;
 
@@ -28,10 +22,4 @@ public class ModifierGroup {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", insertable = false, updatable = false)
     private Store store;
-
-    @Column(name = "created_at")
-    private Instant createdAt;
-
-    @Column(name = "updated_at")
-    private Instant updatedAt;
 }
