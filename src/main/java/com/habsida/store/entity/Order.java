@@ -20,6 +20,9 @@ public class Order extends BaseAuditedEntity {
 
     private String status;
 
+    @Column(name = "order_type")
+    private String orderType;
+
     @Column(name = "total_amount", precision = 19, scale = 4)
     private BigDecimal totalAmount;
 

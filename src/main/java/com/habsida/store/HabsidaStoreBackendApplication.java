@@ -1,13 +1,11 @@
 package com.habsida.store;
 
-import com.habsida.store.config.CorsProperties;
-import com.habsida.store.config.JwtProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
-@EnableConfigurationProperties({JwtProperties.class, CorsProperties.class})
+@ConfigurationPropertiesScan("com.habsida.store.config")
 public class HabsidaStoreBackendApplication {
 
     public static void main(String[] args) {

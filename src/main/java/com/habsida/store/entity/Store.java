@@ -15,6 +15,9 @@ public class Store extends BaseAuditedEntity {
 
     private String name;
 
+    /** One of: ACTIVE, INACTIVE, PENDING, CLOSED */
+    private String status;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "address_id")

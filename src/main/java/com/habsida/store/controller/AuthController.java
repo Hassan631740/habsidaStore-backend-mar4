@@ -1,11 +1,10 @@
 package com.habsida.store.controller;
 
-import com.habsida.store.entity.User;
-import com.habsida.store.repository.UserRepository;
+import com.habsida.store.service.AuthService;
 import com.habsida.store.security.AuthUser;
-import com.habsida.store.security.JwtService;
 import com.habsida.store.security.dto.AuthResponse;
 import com.habsida.store.security.dto.LoginRequest;
+import com.habsida.store.security.dto.RefreshRequest;
 import com.habsida.store.security.dto.RegisterRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,11 +14,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -27,9 +22,7 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final AuthService authService;
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -37,34 +30,20 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         AuthUser authUser = (AuthUser) authentication.getPrincipal();
-        String token = jwtService.generateToken(authUser.getEmail(), authUser.getId());
-        List<String> roles = authUser.getAuthorities().stream()
-                .map(a -> a.getAuthority().replace("ROLE_", ""))
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(AuthResponse.builder()
-                .accessToken(token)
-                .userId(authUser.getId())
-                .email(authUser.getEmail())
-                .roles(roles)
-                .build());
+        return ResponseEntity.ok(authService.buildAuthResponse(authUser));
     }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
-        User user = User.builder()
-                .email(request.getEmail())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .build();
-        user = userRepository.save(user);
-        String token = jwtService.generateToken(user.getEmail(), user.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(AuthResponse.builder()
-                .accessToken(token)
-                .userId(user.getId())
-                .email(user.getEmail())
-                .roles(List.of())
-                .build());
+        return authService.register(request)
+                .map(r -> ResponseEntity.status(HttpStatus.CREATED).body(r))
+                .orElse(ResponseEntity.status(HttpStatus.CONFLICT).build());
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+        return authService.refresh(request.getRefreshToken())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 }

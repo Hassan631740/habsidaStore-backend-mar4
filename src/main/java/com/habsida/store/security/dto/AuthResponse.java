@@ -14,6 +14,7 @@ import java.util.List;
 public class AuthResponse {
 
     private String accessToken;
+    private String refreshToken;
     private String type = "Bearer";
     private Long userId;
     private String email;

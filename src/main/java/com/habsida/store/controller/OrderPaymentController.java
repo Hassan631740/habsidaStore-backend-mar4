@@ -1,13 +1,17 @@
 package com.habsida.store.controller;
 
+import com.habsida.store.dto.PageResponse;
+import com.habsida.store.dto.DtoMapper;
+import com.habsida.store.dto.request.OrderPaymentRequest;
+import com.habsida.store.dto.response.OrderPaymentResponse;
 import com.habsida.store.entity.OrderPayment;
 import com.habsida.store.repository.OrderPaymentRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/order-payments")
@@ -17,30 +21,33 @@ public class OrderPaymentController {
     private final OrderPaymentRepository repository;
 
     @GetMapping
-    public List<OrderPayment> findAll() {
-        return repository.findAll();
+    public PageResponse<OrderPaymentResponse> findAll(Pageable pageable) {
+        return PageResponse.of(repository.findAll(pageable).map(DtoMapper::toResponse));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<OrderPayment> findById(@PathVariable Long id) {
+    public ResponseEntity<OrderPaymentResponse> findById(@PathVariable Long id) {
         return repository.findById(id)
+                .map(DtoMapper::toResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<OrderPayment> create(@RequestBody OrderPayment entity) {
+    public ResponseEntity<OrderPaymentResponse> create(@Valid @RequestBody OrderPaymentRequest request) {
+        OrderPayment entity = DtoMapper.toEntity(request);
         OrderPayment saved = repository.save(entity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(saved));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<OrderPayment> update(@PathVariable Long id, @RequestBody OrderPayment entity) {
+    public ResponseEntity<OrderPaymentResponse> update(@PathVariable Long id, @Valid @RequestBody OrderPaymentRequest request) {
         if (!repository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
+        OrderPayment entity = DtoMapper.toEntity(request);
         entity.setId(id);
-        return ResponseEntity.ok(repository.save(entity));
+        return ResponseEntity.ok(DtoMapper.toResponse(repository.save(entity)));
     }
 
     @DeleteMapping("/{id}")

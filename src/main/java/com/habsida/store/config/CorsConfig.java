@@ -18,14 +18,14 @@ public class CorsConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(corsProperties.getAllowedOrigins());
-        config.setAllowedMethods(corsProperties.getAllowedMethods());
-        config.setAllowedHeaders(corsProperties.getAllowedHeaders());
-        if (!corsProperties.getExposedHeaders().isEmpty()) {
-            config.setExposedHeaders(corsProperties.getExposedHeaders());
+        config.setAllowedOrigins(corsProperties.allowedOrigins());
+        config.setAllowedMethods(corsProperties.allowedMethods());
+        config.setAllowedHeaders(corsProperties.allowedHeaders());
+        if (!corsProperties.exposedHeaders().isEmpty()) {
+            config.setExposedHeaders(corsProperties.exposedHeaders());
         }
-        config.setMaxAge(corsProperties.getMaxAgeSeconds());
-        config.setAllowCredentials(corsProperties.isAllowCredentials());
+        config.setMaxAge(corsProperties.maxAgeSeconds());
+        config.setAllowCredentials(corsProperties.allowCredentials());
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

@@ -1,54 +1,55 @@
 package com.habsida.store.controller;
 
-import com.habsida.store.entity.Product;
-import com.habsida.store.repository.ProductRepository;
+import com.habsida.store.dto.PageResponse;
+import com.habsida.store.dto.request.ProductRequest;
+import com.habsida.store.dto.response.ProductResponse;
+import com.habsida.store.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
 public class ProductController {
 
-    private final ProductRepository repository;
+    private final ProductService productService;
 
     @GetMapping
-    public List<Product> findAll() {
-        return repository.findAll();
+    public PageResponse<ProductResponse> findAll(
+            @RequestParam(required = false) Map<String, String> filter,
+            Pageable pageable) {
+        return productService.findAll(pageable, filter);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> findById(@PathVariable Long id) {
-        return repository.findById(id)
+    public ResponseEntity<ProductResponse> findById(@PathVariable Long id) {
+        return productService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Product> create(@RequestBody Product entity) {
-        Product saved = repository.save(entity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody Product entity) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        entity.setId(id);
-        return ResponseEntity.ok(repository.save(entity));
+    public ResponseEntity<ProductResponse> update(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
+        return productService.update(id, request)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return productService.deleteById(id)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 }

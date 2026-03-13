@@ -6,12 +6,15 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Getter
-public class AuthUser implements UserDetails {
+public class AuthUser implements UserDetails, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final Long id;
     private final String email;

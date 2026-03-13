@@ -7,6 +7,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Strips MySQL-style query params from the datasource URL so PostgreSQL driver accepts it
@@ -29,6 +30,10 @@ public class DatasourceUrlSanitizer implements EnvironmentPostProcessor, Ordered
             return;
         }
         // Fix missing "j" (jdbc -> dbc) and strip MySQL query params
+        if (!url.startsWith("jdbc:")) {
+            Logger.getLogger(DatasourceUrlSanitizer.class.getName())
+                    .warning("DATABASE_URL did not start with 'jdbc:'; prepended 'j'. Result: j" + url + " — please fix the URL in .env");
+        }
         String base = url.startsWith("jdbc:") ? url : "j" + url;
         String clean = base.contains("?") ? base.substring(0, base.indexOf('?')) : base;
         Map<String, Object> overrides = new java.util.LinkedHashMap<>();

@@ -5,6 +5,7 @@ import org.springframework.boot.flyway.autoconfigure.FlywayConfigurationCustomiz
 import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 @Configuration
 public class FlywayConfig {
@@ -16,9 +17,10 @@ public class FlywayConfig {
 
     /**
      * Run repair before migrate so failed migrations (e.g. version 3) are cleared
-     * and can be re-run. Use only in dev; in production run repair manually if needed.
+     * and can be re-run. Only active in dev; in production run repair manually if needed.
      */
     @Bean
+    @Profile("dev")
     public FlywayMigrationStrategy flywayMigrationStrategy() {
         return flyway -> {
             flyway.repair();

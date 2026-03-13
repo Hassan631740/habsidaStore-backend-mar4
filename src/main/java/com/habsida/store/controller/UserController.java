@@ -1,46 +1,68 @@
 package com.habsida.store.controller;
 
+import com.habsida.store.dto.PageResponse;
+import com.habsida.store.dto.DtoMapper;
+import com.habsida.store.dto.request.UserRequest;
+import com.habsida.store.dto.response.UserResponse;
 import com.habsida.store.entity.User;
 import com.habsida.store.repository.UserRepository;
+import com.habsida.store.spec.FilterSpecs;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
+    private static final Map<String, FilterSpecs.FilterMode> USER_FILTERS = Map.of(
+            "email", FilterSpecs.FilterMode.CONTAINS_IGNORE_CASE
+    );
+
     private final UserRepository repository;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping
-    public List<User> findAll() {
-        return repository.findAll();
+    public PageResponse<UserResponse> findAll(
+            @RequestParam(required = false) Map<String, String> filter,
+            Pageable pageable) {
+        Specification<User> spec = FilterSpecs.from(filter, USER_FILTERS);
+        Page<User> page = spec == null ? repository.findAll(pageable) : repository.findAll(spec, pageable);
+        return PageResponse.of(page.map(DtoMapper::toResponse));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> findById(@PathVariable Long id) {
+    public ResponseEntity<UserResponse> findById(@PathVariable Long id) {
         return repository.findById(id)
+                .map(DtoMapper::toResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<User> create(@RequestBody User entity) {
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
+        User entity = DtoMapper.toEntity(request, passwordEncoder);
         User saved = repository.save(entity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(saved));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> update(@PathVariable Long id, @RequestBody User entity) {
-        if (!repository.existsById(id)) {
+    public ResponseEntity<UserResponse> update(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
+        User existing = repository.findById(id).orElse(null);
+        if (existing == null) {
             return ResponseEntity.notFound().build();
         }
-        entity.setId(id);
-        return ResponseEntity.ok(repository.save(entity));
+        DtoMapper.updateEntity(existing, request, passwordEncoder);
+        return ResponseEntity.ok(DtoMapper.toResponse(repository.save(existing)));
     }
 
     @DeleteMapping("/{id}")
