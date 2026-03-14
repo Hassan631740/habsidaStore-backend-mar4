@@ -46,6 +46,9 @@ public final class FilterSpecs {
                         predicates.add(cb.equal(root.get(param), Long.parseLong(value)));
                     } else if (mode == FilterMode.CONTAINS_IGNORE_CASE) {
                         predicates.add(cb.like(cb.lower(root.get(param)), "%" + value.toLowerCase() + "%"));
+                    } else if (mode == FilterMode.EQUALS_BOOLEAN) {
+                        boolean b = "true".equalsIgnoreCase(value);
+                        predicates.add(cb.equal(root.get(param), b));
                     }
                 } catch (Exception ignored) {
                     // skip invalid value (e.g. non-numeric for long)
@@ -61,6 +64,7 @@ public final class FilterSpecs {
     public enum FilterMode {
         EQUALS,
         EQUALS_LONG,
+        EQUALS_BOOLEAN,
         CONTAINS_IGNORE_CASE
     }
 }

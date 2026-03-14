@@ -1,6 +1,7 @@
 package com.habsida.store.controller;
 
 import com.habsida.store.dto.PageResponse;
+import com.habsida.store.dto.request.ProductOrderingPausedRequest;
 import com.habsida.store.dto.request.ProductRequest;
 import com.habsida.store.dto.response.ProductResponse;
 import com.habsida.store.service.ProductService;
@@ -42,6 +43,16 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponse> update(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
         return productService.update(id, request)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /** Pause or resume ordering for this product (availableForOrder = !paused). */
+    @PatchMapping("/{id}/ordering-paused")
+    public ResponseEntity<ProductResponse> setOrderingPaused(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductOrderingPausedRequest request) {
+        return productService.setOrderingPaused(id, request.getPaused())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

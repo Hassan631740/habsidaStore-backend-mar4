@@ -107,6 +107,7 @@ public final class DtoMapper {
                 .name(e.getName())
                 .slug(e.getSlug())
                 .parentId(e.getParentId())
+                .storeId(e.getStoreId())
                 .build();
     }
 
@@ -115,6 +116,7 @@ public final class DtoMapper {
         Category e = new Category();
         e.setName(r.getName());
         e.setSlug(r.getSlug());
+        e.setStoreId(r.getStoreId());
         e.setParentId(r.getParentId());
         return e;
     }
@@ -341,6 +343,7 @@ public final class DtoMapper {
                 .price(e.getPrice())
                 .categoryId(e.getCategoryId())
                 .storeId(e.getStoreId())
+                .availableForOrder(e.getAvailableForOrder() != null ? e.getAvailableForOrder() : true)
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -354,6 +357,7 @@ public final class DtoMapper {
         e.setPrice(r.getPrice());
         e.setCategoryId(r.getCategoryId());
         e.setStoreId(r.getStoreId());
+        e.setAvailableForOrder(r.getAvailableForOrder() != null ? r.getAvailableForOrder() : true);
         return e;
     }
 

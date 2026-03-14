@@ -33,4 +33,7 @@ public class ProductRequest {
     @NotNull(message = "Store ID is required")
     @Positive(message = "Store ID must be positive")
     private Long storeId;
+
+    /** When false, ordering is paused for this product. Default true. */
+    private Boolean availableForOrder;
 }

@@ -27,6 +27,9 @@ public class Product extends BaseAuditedEntity {
     @Column(name = "store_id")
     private Long storeId;
 
+    @Column(name = "available_for_order")
+    private Boolean availableForOrder = true;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", insertable = false, updatable = false)
