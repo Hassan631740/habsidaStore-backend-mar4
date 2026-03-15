@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.criteria.Predicate;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -36,6 +37,20 @@ public class ProductService {
         Specification<Product> spec = productListSpec(filter);
         Page<Product> page = spec == null ? repository.findAll(pageable) : repository.findAll(spec, pageable);
         return PageResponse.of(page.map(DtoMapper::toResponse));
+    }
+
+    /** List products for given stores only (e.g. merchant's stores), with same filters as findAll. */
+    @Transactional(readOnly = true)
+    public PageResponse<ProductResponse> findAllForStores(List<Long> storeIds, Pageable pageable, Map<String, String> filter) {
+        if (storeIds == null || storeIds.isEmpty()) {
+            return PageResponse.of(Page.empty(pageable));
+        }
+        Specification<Product> storeSpec = (root, query, cb) -> root.get("storeId").in(storeIds);
+        Map<String, String> filterWithoutStore = filter != null ? new java.util.HashMap<>(filter) : new java.util.HashMap<>();
+        filterWithoutStore.remove("storeId");
+        Specification<Product> rest = productListSpec(filterWithoutStore);
+        Specification<Product> spec = rest == null ? storeSpec : storeSpec.and(rest);
+        return PageResponse.of(repository.findAll(spec, pageable).map(DtoMapper::toResponse));
     }
 
     private static Specification<Product> productListSpec(Map<String, String> filter) {

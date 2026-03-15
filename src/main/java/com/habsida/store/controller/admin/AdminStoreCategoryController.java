@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * Admin: categories for a specific store. GET/POST/PUT/DELETE /api/admin/stores/{storeId}/categories
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin/stores/{storeId}/categories")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
+@Tag(name = "Categories", description = "Category CRUD per store")
 public class AdminStoreCategoryController {
 
     private final CategoryRepository categoryRepository;

@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
@@ -23,6 +24,7 @@ import java.util.List;
 @RequestMapping("/api/merchant/stores")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('MERCHANT')")
+@Tag(name = "Stores", description = "Store management (admin: any store; merchant: assigned stores)")
 public class MerchantStoreController {
 
     private final StoreRepository storeRepository;

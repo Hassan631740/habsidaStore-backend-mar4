@@ -1,5 +1,6 @@
 package com.habsida.store.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,11 +11,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Assign a modifier group to a product")
 public class ProductModifierGroupRequest {
 
     @NotNull(message = "Product ID is required")
+    @Schema(example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long productId;
 
     @NotNull(message = "Modifier group ID is required")
+    @Schema(example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long modifierGroupId;
 }

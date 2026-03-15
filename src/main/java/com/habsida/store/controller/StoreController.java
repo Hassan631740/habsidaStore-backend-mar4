@@ -13,10 +13,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/stores")
 @RequiredArgsConstructor
+@Tag(name = "Stores", description = "Store management")
 public class StoreController {
 
     private final StoreRepository repository;
