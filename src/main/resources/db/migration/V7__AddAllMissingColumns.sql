@@ -1,0 +1,145 @@
+-- Add any column that may be missing (idempotent for PostgreSQL). TIMESTAMP(6) matches JPA.
+
+-- customer_addresses
+ALTER TABLE customer_addresses ADD COLUMN IF NOT EXISTS customer_id BIGINT NULL;
+ALTER TABLE customer_addresses ADD COLUMN IF NOT EXISTS address_id BIGINT NULL;
+
+-- roles
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS name VARCHAR(255) NULL;
+
+-- categories
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS name VARCHAR(255) NULL;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS slug VARCHAR(255) NULL;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id BIGINT NULL;
+
+-- users
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255) NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- stores
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS name VARCHAR(255) NULL;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS address_id BIGINT NULL;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- customers
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS user_id BIGINT NULL;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS first_name VARCHAR(255) NULL;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS last_name VARCHAR(255) NULL;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS phone VARCHAR(255) NULL;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- modifier_groups
+ALTER TABLE modifier_groups ADD COLUMN IF NOT EXISTS name VARCHAR(255) NULL;
+ALTER TABLE modifier_groups ADD COLUMN IF NOT EXISTS store_id BIGINT NULL;
+ALTER TABLE modifier_groups ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE modifier_groups ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- modifier_options
+ALTER TABLE modifier_options ADD COLUMN IF NOT EXISTS modifier_group_id BIGINT NULL;
+ALTER TABLE modifier_options ADD COLUMN IF NOT EXISTS name VARCHAR(255) NULL;
+ALTER TABLE modifier_options ADD COLUMN IF NOT EXISTS price_adjustment DECIMAL(19,4) NULL;
+ALTER TABLE modifier_options ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE modifier_options ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- products
+ALTER TABLE products ADD COLUMN IF NOT EXISTS name VARCHAR(255) NULL;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS description VARCHAR(1000) NULL;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS price DECIMAL(19,4) NULL;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS category_id BIGINT NULL;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS store_id BIGINT NULL;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- product_images
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS product_id BIGINT NULL;
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS url VARCHAR(500) NULL;
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS sort_order INT NULL;
+
+-- product_modifier_groups
+ALTER TABLE product_modifier_groups ADD COLUMN IF NOT EXISTS product_id BIGINT NULL;
+ALTER TABLE product_modifier_groups ADD COLUMN IF NOT EXISTS modifier_group_id BIGINT NULL;
+
+-- carts
+ALTER TABLE carts ADD COLUMN IF NOT EXISTS customer_id BIGINT NULL;
+ALTER TABLE carts ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE carts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- cart_items
+ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS cart_id BIGINT NULL;
+ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS product_id BIGINT NULL;
+ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS quantity INT NULL;
+
+-- orders
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id BIGINT NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS status VARCHAR(255) NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS total_amount DECIMAL(19,4) NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- order_items
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS order_id BIGINT NULL;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_id BIGINT NULL;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS quantity INT NULL;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS price DECIMAL(19,4) NULL;
+
+-- order_item_modifiers
+ALTER TABLE order_item_modifiers ADD COLUMN IF NOT EXISTS order_item_id BIGINT NULL;
+ALTER TABLE order_item_modifiers ADD COLUMN IF NOT EXISTS modifier_option_id BIGINT NULL;
+ALTER TABLE order_item_modifiers ADD COLUMN IF NOT EXISTS price DECIMAL(19,4) NULL;
+
+-- order_addresses
+ALTER TABLE order_addresses ADD COLUMN IF NOT EXISTS order_id BIGINT NULL;
+ALTER TABLE order_addresses ADD COLUMN IF NOT EXISTS address_id BIGINT NULL;
+
+-- order_payments
+ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS order_id BIGINT NULL;
+ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS amount DECIMAL(19,4) NULL;
+ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS payment_method VARCHAR(255) NULL;
+ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS status VARCHAR(255) NULL;
+ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE order_payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- fulfillment
+ALTER TABLE fulfillment ADD COLUMN IF NOT EXISTS order_id BIGINT NULL;
+ALTER TABLE fulfillment ADD COLUMN IF NOT EXISTS status VARCHAR(255) NULL;
+ALTER TABLE fulfillment ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE fulfillment ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- user_roles
+ALTER TABLE user_roles ADD COLUMN IF NOT EXISTS user_id BIGINT NULL;
+ALTER TABLE user_roles ADD COLUMN IF NOT EXISTS role_id BIGINT NULL;
+
+-- user_store_access
+ALTER TABLE user_store_access ADD COLUMN IF NOT EXISTS user_id BIGINT NULL;
+ALTER TABLE user_store_access ADD COLUMN IF NOT EXISTS store_id BIGINT NULL;
+
+-- store_hours
+ALTER TABLE store_hours ADD COLUMN IF NOT EXISTS store_id BIGINT NULL;
+ALTER TABLE store_hours ADD COLUMN IF NOT EXISTS day_of_week INT NULL;
+ALTER TABLE store_hours ADD COLUMN IF NOT EXISTS open_time TIME NULL;
+ALTER TABLE store_hours ADD COLUMN IF NOT EXISTS close_time TIME NULL;
+
+-- store_breaks
+ALTER TABLE store_breaks ADD COLUMN IF NOT EXISTS store_id BIGINT NULL;
+ALTER TABLE store_breaks ADD COLUMN IF NOT EXISTS start_time TIME NULL;
+ALTER TABLE store_breaks ADD COLUMN IF NOT EXISTS end_time TIME NULL;
+
+-- store_delivery_settings
+ALTER TABLE store_delivery_settings ADD COLUMN IF NOT EXISTS store_id BIGINT NULL;
+ALTER TABLE store_delivery_settings ADD COLUMN IF NOT EXISTS delivery_fee DECIMAL(19,4) NULL;
+ALTER TABLE store_delivery_settings ADD COLUMN IF NOT EXISTS min_order_amount DECIMAL(19,4) NULL;
+ALTER TABLE store_delivery_settings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(6) NULL;
+ALTER TABLE store_delivery_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) NULL;
+
+-- store_delivery_areas
+ALTER TABLE store_delivery_areas ADD COLUMN IF NOT EXISTS store_id BIGINT NULL;
+ALTER TABLE store_delivery_areas ADD COLUMN IF NOT EXISTS name VARCHAR(255) NULL;
+
+-- store_delivery_restrictions
+ALTER TABLE store_delivery_restrictions ADD COLUMN IF NOT EXISTS store_id BIGINT NULL;
+ALTER TABLE store_delivery_restrictions ADD COLUMN IF NOT EXISTS type VARCHAR(255) NULL;
+ALTER TABLE store_delivery_restrictions ADD COLUMN IF NOT EXISTS value VARCHAR(255) NULL;

@@ -1,0 +1,6 @@
+-- Add remaining Address columns if missing (idempotent for PostgreSQL).
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS street_line1 VARCHAR(255) NULL;
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS street_line2 VARCHAR(255) NULL;
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS city VARCHAR(255) NULL;
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS postal_code VARCHAR(255) NULL;
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS country VARCHAR(255) NULL;
