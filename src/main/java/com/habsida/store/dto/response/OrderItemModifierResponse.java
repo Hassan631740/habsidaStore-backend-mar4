@@ -16,5 +16,6 @@ public class OrderItemModifierResponse {
     private Long id;
     private Long orderItemId;
     private Long modifierOptionId;
+    private String optionNameSnapshot;
     private BigDecimal price;
 }

@@ -1,19 +1,25 @@
 package com.habsida.store.service;
 
 import com.habsida.store.dto.DtoMapper;
+import com.habsida.store.dto.request.CreateOrderRequest;
 import com.habsida.store.dto.request.PlaceOrderRequest;
 import com.habsida.store.dto.response.OrderResponse;
 import com.habsida.store.entity.Customer;
+import com.habsida.store.entity.ModifierOption;
 import com.habsida.store.entity.Order;
 import com.habsida.store.entity.OrderItem;
+import com.habsida.store.entity.OrderItemModifier;
 import com.habsida.store.entity.Product;
 import com.habsida.store.enums.CustomerStatus;
 import com.habsida.store.enums.OrderStatus;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.CustomerRepository;
+import com.habsida.store.repository.ModifierOptionRepository;
+import com.habsida.store.repository.OrderItemModifierRepository;
 import com.habsida.store.repository.OrderItemRepository;
 import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.repository.ProductRepository;
+import com.habsida.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +39,9 @@ public class OrderWorkflowService {
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final OrderItemModifierRepository orderItemModifierRepository;
+    private final ModifierOptionRepository modifierOptionRepository;
+    private final StoreRepository storeRepository;
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request) {
@@ -58,12 +68,15 @@ public class OrderWorkflowService {
             total = total.add(unit.multiply(BigDecimal.valueOf(line.getQuantity())));
             items.add(OrderItem.builder()
                     .productId(p.getId())
+                    .productNameSnapshot(p.getName())
+                    .unitPriceSnapshot(unit)
                     .quantity(line.getQuantity())
                     .price(unit)
                     .build());
         }
 
         Order order = Order.builder()
+                .storeId(request.getStoreId())
                 .customerId(request.getCustomerId())
                 .status(OrderStatus.PENDING.name())
                 .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
@@ -78,22 +91,100 @@ public class OrderWorkflowService {
     }
 
     @Transactional
+    public OrderResponse createOrderForStore(Long storeId, CreateOrderRequest request) {
+        if (!storeRepository.existsById(storeId)) {
+            throw new ResourceNotFoundException("Store", storeId);
+        }
+        Customer customer = customerRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
+        if (!CustomerStatus.ACTIVE.name().equals(customer.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is suspended");
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        List<OrderItem> items = new ArrayList<>();
+        List<List<OrderItemModifier>> modifiersPerLine = new ArrayList<>();
+        for (CreateOrderRequest.CreateOrderLineRequest line : request.getLines()) {
+            Product p = productRepository.findById(line.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", line.getProductId()));
+            if (p.getStoreId() == null || !p.getStoreId().equals(storeId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Product " + line.getProductId() + " does not belong to this store");
+            }
+            if (Boolean.FALSE.equals(p.getAvailableForOrder())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Product " + line.getProductId() + " is not available for order");
+            }
+            BigDecimal unit = p.getPrice() != null ? p.getPrice() : BigDecimal.ZERO;
+            BigDecimal lineTotal = unit.multiply(BigDecimal.valueOf(line.getQuantity()));
+            List<OrderItemModifier> modifiers = new ArrayList<>();
+            if (line.getModifierOptionIds() != null) {
+                for (Long optionId : line.getModifierOptionIds()) {
+                    ModifierOption opt = modifierOptionRepository.findById(optionId)
+                            .orElseThrow(() -> new ResourceNotFoundException("ModifierOption", optionId));
+                    BigDecimal adj = opt.getPriceAdjustment() != null ? opt.getPriceAdjustment() : BigDecimal.ZERO;
+                    lineTotal = lineTotal.add(adj.multiply(BigDecimal.valueOf(line.getQuantity())));
+                    modifiers.add(OrderItemModifier.builder()
+                            .modifierOptionId(opt.getId())
+                            .optionNameSnapshot(opt.getName())
+                            .price(opt.getPriceAdjustment())
+                            .build());
+                }
+            }
+            total = total.add(lineTotal);
+            items.add(OrderItem.builder()
+                    .productId(p.getId())
+                    .productNameSnapshot(p.getName())
+                    .unitPriceSnapshot(unit)
+                    .quantity(line.getQuantity())
+                    .price(unit)
+                    .build());
+            modifiersPerLine.add(modifiers);
+        }
+
+        Order order = Order.builder()
+                .storeId(storeId)
+                .customerId(request.getCustomerId())
+                .status(OrderStatus.NEW.name())
+                .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
+                .totalAmount(total)
+                .notes(request.getNotes())
+                .build();
+        Order saved = orderRepository.save(order);
+        for (int i = 0; i < items.size(); i++) {
+            OrderItem oi = items.get(i);
+            oi.setOrderId(saved.getId());
+            OrderItem savedItem = orderItemRepository.save(oi);
+            for (OrderItemModifier m : modifiersPerLine.get(i)) {
+                m.setOrderItemId(savedItem.getId());
+                orderItemModifierRepository.save(m);
+            }
+        }
+        return DtoMapper.toResponse(orderRepository.findById(saved.getId()).orElseThrow());
+    }
+
+    @Transactional
     public OrderResponse merchantAccept(Long orderId, List<Long> merchantStoreIds) {
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
-        if (!OrderStatus.PENDING.name().equals(order.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING orders can be accepted");
+        String status = order.getStatus();
+        if (!OrderStatus.NEW.name().equals(status) && !OrderStatus.PENDING.name().equals(status)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be accepted");
         }
         order.setStatus(OrderStatus.CONFIRMED.name());
+        order.setAcceptedAt(Instant.now());
+        order.setRejectReason(null);
         return DtoMapper.toResponse(orderRepository.save(order));
     }
 
     @Transactional
-    public OrderResponse merchantReject(Long orderId, List<Long> merchantStoreIds) {
+    public OrderResponse merchantReject(Long orderId, List<Long> merchantStoreIds, String rejectReason) {
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
-        if (!OrderStatus.PENDING.name().equals(order.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING orders can be rejected");
+        String status = order.getStatus();
+        if (!OrderStatus.NEW.name().equals(status) && !OrderStatus.PENDING.name().equals(status)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be rejected");
         }
         order.setStatus(OrderStatus.REJECTED.name());
+        order.setRejectReason(rejectReason);
         return DtoMapper.toResponse(orderRepository.save(order));
     }
 
@@ -120,6 +211,9 @@ public class OrderWorkflowService {
         }
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+        if (order.getStoreId() != null && merchantStoreIds.contains(order.getStoreId())) {
+            return order;
+        }
         long totalItems = orderItemRepository.countByOrderId(orderId);
         if (totalItems == 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order has no line items");
@@ -133,10 +227,10 @@ public class OrderWorkflowService {
     }
 
     /**
-     * After placement: PENDING → accept/reject only. Then CONFIRMED → … → DELIVERED, or CANCELLED from most states.
+     * After placement: NEW/PENDING → accept/reject only. Then CONFIRMED → … → DELIVERED, or CANCELLED from most states.
      */
     private static boolean isAllowedStatusTransition(OrderStatus from, OrderStatus to) {
-        if (from == OrderStatus.PENDING || from == OrderStatus.REJECTED) {
+        if (from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.REJECTED) {
             return false;
         }
         if (from == OrderStatus.DELIVERED) {

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Entity
 @Table(name = "orders")
@@ -14,6 +15,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class Order extends BaseAuditedEntity {
+
+    @Column(name = "store_id")
+    private Long storeId;
 
     @Column(name = "customer_id")
     private Long customerId;
@@ -25,6 +29,20 @@ public class Order extends BaseAuditedEntity {
 
     @Column(name = "total_amount", precision = 19, scale = 4)
     private BigDecimal totalAmount;
+
+    @Column(name = "accepted_at")
+    private Instant acceptedAt;
+
+    @Column(name = "reject_reason", length = 500)
+    private String rejectReason;
+
+    @Column(length = 2000)
+    private String notes;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id", insertable = false, updatable = false)
+    private Store store;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)

@@ -17,10 +17,14 @@ import java.time.Instant;
 public class OrderResponse {
 
     private Long id;
+    private Long storeId;
     private Long customerId;
     private OrderStatus status;
     private OrderType orderType;
     private BigDecimal totalAmount;
+    private Instant acceptedAt;
+    private String rejectReason;
+    private String notes;
     private Instant createdAt;
     private Instant updatedAt;
 }

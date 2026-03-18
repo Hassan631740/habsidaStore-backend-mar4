@@ -2,6 +2,7 @@ package com.habsida.store.controller.merchant;
 
 import com.habsida.store.dto.PageResponse;
 import com.habsida.store.dto.DtoMapper;
+import com.habsida.store.dto.request.MerchantOrderRejectRequest;
 import com.habsida.store.dto.request.MerchantOrderStatusRequest;
 import com.habsida.store.dto.response.OrderResponse;
 import com.habsida.store.exception.ResourceNotFoundException;
@@ -32,9 +33,13 @@ public class MerchantOrderController {
     private final UserStoreAccessRepository userStoreAccessRepository;
     private final OrderWorkflowService orderWorkflowService;
 
+    /**
+     * List orders for the merchant's stores. Optional filter: ?status=NEW (or other OrderStatus).
+     */
     @GetMapping
     public PageResponse<OrderResponse> findMyOrders(
             @AuthenticationPrincipal AuthUser authUser,
+            @RequestParam(required = false) String status,
             Pageable pageable) {
         List<Long> storeIds = userStoreAccessRepository.findByUserId(authUser.getId()).stream()
                 .map(usa -> usa.getStoreId())
@@ -45,7 +50,7 @@ public class MerchantOrderController {
             return PageResponse.of(org.springframework.data.domain.Page.empty(pageable));
         }
         return PageResponse.of(
-                orderRepository.findByStoreIds(storeIds, pageable).map(DtoMapper::toResponse));
+                orderRepository.findByStoreIdsAndStatus(storeIds, status, pageable).map(DtoMapper::toResponse));
     }
 
     @GetMapping("/{id}")
@@ -75,9 +80,11 @@ public class MerchantOrderController {
     @PostMapping("/{id}/reject")
     public ResponseEntity<OrderResponse> reject(
             @AuthenticationPrincipal AuthUser authUser,
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestBody(required = false) MerchantOrderRejectRequest body) {
         List<Long> storeIds = merchantStoreIds(authUser.getId());
-        return ResponseEntity.ok(orderWorkflowService.merchantReject(id, storeIds));
+        String reason = body != null ? body.getRejectReason() : null;
+        return ResponseEntity.ok(orderWorkflowService.merchantReject(id, storeIds, reason));
     }
 
     /**

@@ -21,6 +21,12 @@ public class OrderItem extends BaseEntity {
     @Column(name = "product_id")
     private Long productId;
 
+    @Column(name = "product_name_snapshot", length = 500)
+    private String productNameSnapshot;
+
+    @Column(name = "unit_price_snapshot", precision = 19, scale = 4)
+    private BigDecimal unitPriceSnapshot;
+
     private Integer quantity;
 
     @Column(precision = 19, scale = 4)

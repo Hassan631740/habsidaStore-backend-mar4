@@ -236,10 +236,14 @@ public final class DtoMapper {
         if (e == null) return null;
         return OrderResponse.builder()
                 .id(e.getId())
+                .storeId(e.getStoreId())
                 .customerId(e.getCustomerId())
                 .status(safeOrderStatus(e.getStatus()))
                 .orderType(safeOrderType(e.getOrderType()))
                 .totalAmount(e.getTotalAmount())
+                .acceptedAt(e.getAcceptedAt())
+                .rejectReason(e.getRejectReason())
+                .notes(e.getNotes())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -248,10 +252,12 @@ public final class DtoMapper {
     public static Order toEntity(OrderRequest r) {
         if (r == null) return null;
         Order e = new Order();
+        e.setStoreId(r.getStoreId());
         e.setCustomerId(r.getCustomerId());
         e.setStatus(r.getStatus() != null ? r.getStatus().name() : null);
         e.setOrderType(r.getOrderType() != null ? r.getOrderType().name() : null);
         e.setTotalAmount(r.getTotalAmount());
+        e.setNotes(r.getNotes());
         return e;
     }
 
@@ -280,6 +286,8 @@ public final class DtoMapper {
                 .id(e.getId())
                 .orderId(e.getOrderId())
                 .productId(e.getProductId())
+                .productNameSnapshot(e.getProductNameSnapshot())
+                .unitPriceSnapshot(e.getUnitPriceSnapshot())
                 .quantity(e.getQuantity())
                 .price(e.getPrice())
                 .build();
@@ -290,6 +298,8 @@ public final class DtoMapper {
         OrderItem e = new OrderItem();
         e.setOrderId(r.getOrderId());
         e.setProductId(r.getProductId());
+        e.setProductNameSnapshot(r.getProductNameSnapshot());
+        e.setUnitPriceSnapshot(r.getUnitPriceSnapshot());
         e.setQuantity(r.getQuantity());
         e.setPrice(r.getPrice());
         return e;
@@ -302,6 +312,7 @@ public final class DtoMapper {
                 .id(e.getId())
                 .orderItemId(e.getOrderItemId())
                 .modifierOptionId(e.getModifierOptionId())
+                .optionNameSnapshot(e.getOptionNameSnapshot())
                 .price(e.getPrice())
                 .build();
     }
@@ -311,6 +322,7 @@ public final class DtoMapper {
         OrderItemModifier e = new OrderItemModifier();
         e.setOrderItemId(r.getOrderItemId());
         e.setModifierOptionId(r.getModifierOptionId());
+        e.setOptionNameSnapshot(r.getOptionNameSnapshot());
         e.setPrice(r.getPrice());
         return e;
     }
