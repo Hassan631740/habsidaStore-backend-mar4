@@ -22,7 +22,21 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     /**
      * Same as findByStoreIds but also by order.storeId, with optional status filter.
      */
-    @Query("SELECT o FROM Order o WHERE (o.storeId IN :storeIds OR o.id IN (SELECT oi.orderId FROM OrderItem oi JOIN oi.product p WHERE p.storeId IN :storeIds)) AND (:status IS NULL OR :status = '' OR o.status = :status)")
+    @Query("""
+            SELECT o FROM Order o
+            WHERE (o.storeId IN :storeIds OR o.id IN (
+                SELECT oi.orderId FROM OrderItem oi JOIN oi.product p WHERE p.storeId IN :storeIds
+            ))
+            AND (
+                :status IS NULL OR :status = ''
+                OR o.status = :status
+                OR (:status = 'ACCEPTED' AND o.status = 'CONFIRMED')
+                OR (:status = 'IN_PROGRESS' AND (o.status = 'PROCESSING' OR o.status = 'READY' OR o.status = 'SHIPPED'))
+                OR (:status = 'COMPLETED' AND o.status = 'DELIVERED')
+                OR (:status = 'CANCELED' AND o.status = 'CANCELLED')
+                OR (:status = 'NEW' AND o.status = 'PENDING')
+            )
+            """)
     Page<Order> findByStoreIdsAndStatus(@Param("storeIds") List<Long> storeIds, @Param("status") String status, Pageable pageable);
 
     @Query("SELECT COUNT(oi) FROM OrderItem oi JOIN oi.product p WHERE oi.orderId = :orderId AND p.storeId IN :storeIds")

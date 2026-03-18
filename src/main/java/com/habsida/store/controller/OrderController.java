@@ -34,7 +34,7 @@ public class OrderController {
     private final OrderWorkflowService orderWorkflowService;
 
     /**
-     * Create a single-store order from line items. Status starts as PENDING (merchant accept/reject).
+     * Create a single-store order from line items. Status starts as NEW (merchant accept/reject).
      */
     @PostMapping("/place")
     public ResponseEntity<OrderResponse> place(@Valid @RequestBody PlaceOrderRequest request) {

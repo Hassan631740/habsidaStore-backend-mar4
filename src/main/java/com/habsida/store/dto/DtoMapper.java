@@ -20,7 +20,14 @@ public final class DtoMapper {
     }
     private static OrderStatus safeOrderStatus(String v) {
         if (v == null || v.isBlank()) return null;
-        try { return OrderStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
+        // Map legacy DB values into the current public lifecycle.
+        String normalized = v;
+        if ("PENDING".equals(v)) normalized = OrderStatus.NEW.name();
+        if ("CONFIRMED".equals(v)) normalized = OrderStatus.ACCEPTED.name();
+        if ("PROCESSING".equals(v) || "READY".equals(v) || "SHIPPED".equals(v)) normalized = OrderStatus.IN_PROGRESS.name();
+        if ("DELIVERED".equals(v)) normalized = OrderStatus.COMPLETED.name();
+        if ("CANCELLED".equals(v)) normalized = OrderStatus.CANCELED.name();
+        try { return OrderStatus.valueOf(normalized); } catch (IllegalArgumentException e) { return null; }
     }
     private static OrderType safeOrderType(String v) {
         if (v == null || v.isBlank()) return null;

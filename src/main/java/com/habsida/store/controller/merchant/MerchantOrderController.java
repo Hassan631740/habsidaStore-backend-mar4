@@ -88,7 +88,9 @@ public class MerchantOrderController {
     }
 
     /**
-     * After accept: CONFIRMED → PROCESSING → READY → SHIPPED → DELIVERED, or CANCELLED (not from PENDING; use reject).
+     * Lifecycle:
+     * NEW → ACCEPTED → IN_PROGRESS → COMPLETED
+     * NEW → REJECTED / CANCELED
      */
     @PatchMapping("/{id}/status")
     public ResponseEntity<OrderResponse> updateStatus(

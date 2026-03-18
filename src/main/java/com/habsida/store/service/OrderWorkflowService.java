@@ -78,7 +78,7 @@ public class OrderWorkflowService {
         Order order = Order.builder()
                 .storeId(request.getStoreId())
                 .customerId(request.getCustomerId())
-                .status(OrderStatus.PENDING.name())
+                .status(OrderStatus.NEW.name())
                 .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
                 .totalAmount(total)
                 .build();
@@ -170,7 +170,7 @@ public class OrderWorkflowService {
         if (!OrderStatus.NEW.name().equals(status) && !OrderStatus.PENDING.name().equals(status)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be accepted");
         }
-        order.setStatus(OrderStatus.CONFIRMED.name());
+        order.setStatus(OrderStatus.ACCEPTED.name());
         order.setAcceptedAt(Instant.now());
         order.setRejectedAt(null);
         order.setRejectReason(null);
@@ -233,20 +233,21 @@ public class OrderWorkflowService {
      * After placement: NEW/PENDING → accept/reject only. Then CONFIRMED → … → DELIVERED, or CANCELLED from most states.
      */
     private static boolean isAllowedStatusTransition(OrderStatus from, OrderStatus to) {
-        if (from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.REJECTED) {
-            return false;
+        // Only allow merchant PATCH transitions in the public lifecycle:
+        // NEW → CANCELED (optional), ACCEPTED → IN_PROGRESS → COMPLETED, and CANCELED from NEW/ACCEPTED/IN_PROGRESS.
+        if (to == OrderStatus.CANCELED) {
+            return from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.ACCEPTED || from == OrderStatus.IN_PROGRESS;
         }
-        if (from == OrderStatus.DELIVERED) {
+        if (from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.REJECTED || from == OrderStatus.COMPLETED || from == OrderStatus.CANCELED) {
             return false;
-        }
-        if (to == OrderStatus.CANCELLED) {
-            return from != OrderStatus.DELIVERED && from != OrderStatus.REJECTED;
         }
         return switch (from) {
-            case CONFIRMED -> to == OrderStatus.PROCESSING;
-            case PROCESSING -> to == OrderStatus.READY;
-            case READY -> to == OrderStatus.SHIPPED;
-            case SHIPPED -> to == OrderStatus.DELIVERED;
+            case ACCEPTED -> to == OrderStatus.IN_PROGRESS;
+            case IN_PROGRESS -> to == OrderStatus.COMPLETED;
+            // Legacy states: treat them as in-progress for transition purposes.
+            case CONFIRMED -> (to == OrderStatus.IN_PROGRESS || to == OrderStatus.COMPLETED);
+            case PROCESSING, READY, SHIPPED -> to == OrderStatus.COMPLETED;
+            case DELIVERED -> false;
             default -> false;
         };
     }
