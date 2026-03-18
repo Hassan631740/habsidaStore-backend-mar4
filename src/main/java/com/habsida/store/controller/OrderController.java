@@ -3,9 +3,11 @@ package com.habsida.store.controller;
 import com.habsida.store.dto.PageResponse;
 import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.OrderRequest;
+import com.habsida.store.dto.request.PlaceOrderRequest;
 import com.habsida.store.dto.response.OrderResponse;
 import com.habsida.store.entity.Order;
 import com.habsida.store.repository.OrderRepository;
+import com.habsida.store.service.OrderWorkflowService;
 import com.habsida.store.spec.FilterSpecs;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,15 @@ public class OrderController {
     );
 
     private final OrderRepository repository;
+    private final OrderWorkflowService orderWorkflowService;
+
+    /**
+     * Create a single-store order from line items. Status starts as PENDING (merchant accept/reject).
+     */
+    @PostMapping("/place")
+    public ResponseEntity<OrderResponse> place(@Valid @RequestBody PlaceOrderRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderWorkflowService.placeOrder(request));
+    }
 
     @GetMapping
     public PageResponse<OrderResponse> findAll(

@@ -34,6 +34,10 @@ public final class DtoMapper {
         if (v == null || v.isBlank()) return null;
         try { return PaymentStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
+    private static CustomerStatus safeCustomerStatus(String v) {
+        if (v == null || v.isBlank()) return CustomerStatus.ACTIVE;
+        try { return CustomerStatus.valueOf(v); } catch (IllegalArgumentException e) { return CustomerStatus.ACTIVE; }
+    }
 
     // ---------- Address ----------
     public static AddressResponse toResponse(Address e) {
@@ -130,6 +134,7 @@ public final class DtoMapper {
                 .firstName(e.getFirstName())
                 .lastName(e.getLastName())
                 .phone(e.getPhone())
+                .status(safeCustomerStatus(e.getStatus()))
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -142,6 +147,7 @@ public final class DtoMapper {
         e.setFirstName(r.getFirstName());
         e.setLastName(r.getLastName());
         e.setPhone(r.getPhone());
+        e.setStatus(r.getStatus() != null ? r.getStatus().name() : CustomerStatus.ACTIVE.name());
         return e;
     }
 

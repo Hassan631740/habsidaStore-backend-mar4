@@ -1,30 +1,27 @@
-package com.habsida.store.dto.request;
+package com.habsida.store.dto.response;
 
 import com.habsida.store.enums.CustomerStatus;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CustomerRequest {
+public class AdminCustomerDetailResponse {
 
-    @NotNull(message = "User ID is required")
+    private Long id;
     private Long userId;
-
-    @NotBlank(message = "First name is required")
     private String firstName;
-
-    @NotBlank(message = "Last name is required")
     private String lastName;
-
     private String phone;
-
-    /** Defaults to ACTIVE when omitted. */
     private CustomerStatus status;
+    private List<AddressResponse> addresses;
+    private Instant createdAt;
+    private Instant updatedAt;
 }
