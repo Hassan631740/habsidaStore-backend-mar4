@@ -242,6 +242,7 @@ public final class DtoMapper {
                 .orderType(safeOrderType(e.getOrderType()))
                 .totalAmount(e.getTotalAmount())
                 .acceptedAt(e.getAcceptedAt())
+                .rejectedAt(e.getRejectedAt())
                 .rejectReason(e.getRejectReason())
                 .notes(e.getNotes())
                 .createdAt(e.getCreatedAt())

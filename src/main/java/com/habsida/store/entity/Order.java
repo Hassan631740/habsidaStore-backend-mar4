@@ -33,6 +33,9 @@ public class Order extends BaseAuditedEntity {
     @Column(name = "accepted_at")
     private Instant acceptedAt;
 
+    @Column(name = "rejected_at")
+    private Instant rejectedAt;
+
     @Column(name = "reject_reason", length = 500)
     private String rejectReason;
 

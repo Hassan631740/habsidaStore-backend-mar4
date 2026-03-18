@@ -172,6 +172,7 @@ public class OrderWorkflowService {
         }
         order.setStatus(OrderStatus.CONFIRMED.name());
         order.setAcceptedAt(Instant.now());
+        order.setRejectedAt(null);
         order.setRejectReason(null);
         return DtoMapper.toResponse(orderRepository.save(order));
     }
@@ -184,6 +185,8 @@ public class OrderWorkflowService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be rejected");
         }
         order.setStatus(OrderStatus.REJECTED.name());
+        order.setAcceptedAt(null);
+        order.setRejectedAt(Instant.now());
         order.setRejectReason(rejectReason);
         return DtoMapper.toResponse(orderRepository.save(order));
     }
