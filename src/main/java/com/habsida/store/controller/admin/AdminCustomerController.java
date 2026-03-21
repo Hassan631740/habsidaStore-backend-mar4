@@ -10,11 +10,11 @@ import com.habsida.store.dto.response.CustomerResponse;
 import com.habsida.store.entity.Address;
 import com.habsida.store.entity.Customer;
 import com.habsida.store.entity.CustomerAddress;
-import com.habsida.store.enums.CustomerStatus;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.AddressRepository;
 import com.habsida.store.repository.CustomerAddressRepository;
 import com.habsida.store.repository.CustomerRepository;
+import com.habsida.store.service.AdminCustomerService;
 import com.habsida.store.spec.FilterSpecs;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -43,13 +45,14 @@ public class AdminCustomerController {
             "firstName", FilterSpecs.FilterMode.CONTAINS_IGNORE_CASE,
             "lastName", FilterSpecs.FilterMode.CONTAINS_IGNORE_CASE,
             "phone", FilterSpecs.FilterMode.CONTAINS_IGNORE_CASE,
-            "status", FilterSpecs.FilterMode.EQUALS,
+            "status", FilterSpecs.FilterMode.EQUALS_CUSTOMER_STATUS,
             "userId", FilterSpecs.FilterMode.EQUALS_LONG
     );
 
     private final CustomerRepository customerRepository;
     private final AddressRepository addressRepository;
     private final CustomerAddressRepository customerAddressRepository;
+    private final AdminCustomerService adminCustomerService;
 
     @GetMapping
     public PageResponse<CustomerResponse> list(
@@ -64,39 +67,22 @@ public class AdminCustomerController {
     public ResponseEntity<AdminCustomerDetailResponse> getById(@PathVariable Long id) {
         Customer c = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", id));
-        List<AddressResponse> addresses = customerAddressRepository.findByCustomerIdOrderByIdAsc(id).stream()
+        List<CustomerAddress> links = customerAddressRepository.findByCustomerIdOrderByIdAsc(id);
+        List<Long> addressIds = links.stream().map(CustomerAddress::getAddressId).toList();
+        Map<Long, Address> addressById = addressRepository.findAllById(addressIds).stream()
+                .collect(Collectors.toMap(Address::getId, Function.identity()));
+        List<AddressResponse> addresses = links.stream()
                 .map(CustomerAddress::getAddressId)
-                .map(addressRepository::findById)
-                .filter(opt -> opt.isPresent())
-                .map(opt -> DtoMapper.toResponse(opt.get()))
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(toDetail(c, addresses));
+                .map(addressById::get)
+                .filter(Objects::nonNull)
+                .map(DtoMapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(adminCustomerService.toDetail(c, addresses));
     }
 
     @PostMapping
     public ResponseEntity<AdminCustomerDetailResponse> create(@Valid @RequestBody AdminCustomerCreateRequest request) {
-        CustomerStatus st = request.getStatus() != null ? request.getStatus() : CustomerStatus.ACTIVE;
-        Customer customer = Customer.builder()
-                .userId(request.getUserId())
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .phone(request.getPhone())
-                .status(st.name())
-                .build();
-        customer = customerRepository.save(customer);
-
-        List<AddressResponse> addressResponses = new java.util.ArrayList<>();
-        if (request.getAddresses() != null) {
-            for (var ar : request.getAddresses()) {
-                Address addr = addressRepository.save(DtoMapper.toEntity(ar));
-                customerAddressRepository.save(CustomerAddress.builder()
-                        .customerId(customer.getId())
-                        .addressId(addr.getId())
-                        .build());
-                addressResponses.add(DtoMapper.toResponse(addr));
-            }
-        }
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDetail(customer, addressResponses));
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminCustomerService.createCustomer(request));
     }
 
     @PutMapping("/{id}/status")
@@ -105,32 +91,7 @@ public class AdminCustomerController {
             @Valid @RequestBody CustomerStatusUpdateRequest request) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", id));
-        customer.setStatus(request.getStatus().name());
+        customer.setStatus(request.getStatus());
         return ResponseEntity.ok(DtoMapper.toResponse(customerRepository.save(customer)));
-    }
-
-    private static CustomerStatus parseCustomerStatus(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return CustomerStatus.ACTIVE;
-        }
-        try {
-            return CustomerStatus.valueOf(raw);
-        } catch (IllegalArgumentException e) {
-            return CustomerStatus.ACTIVE;
-        }
-    }
-
-    private static AdminCustomerDetailResponse toDetail(Customer c, List<AddressResponse> addresses) {
-        return AdminCustomerDetailResponse.builder()
-                .id(c.getId())
-                .userId(c.getUserId())
-                .firstName(c.getFirstName())
-                .lastName(c.getLastName())
-                .phone(c.getPhone())
-                .status(parseCustomerStatus(c.getStatus()))
-                .addresses(addresses)
-                .createdAt(c.getCreatedAt())
-                .updatedAt(c.getUpdatedAt())
-                .build();
     }
 }

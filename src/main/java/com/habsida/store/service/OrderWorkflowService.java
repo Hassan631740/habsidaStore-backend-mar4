@@ -20,6 +20,7 @@ import com.habsida.store.repository.OrderItemRepository;
 import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.repository.ProductRepository;
 import com.habsida.store.repository.StoreRepository;
+import com.habsida.store.security.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -44,11 +45,33 @@ public class OrderWorkflowService {
     private final StoreRepository storeRepository;
 
     @Transactional
-    public OrderResponse placeOrder(PlaceOrderRequest request) {
+    public OrderResponse placeOrder(PlaceOrderRequest request, AuthUser authUser) {
+        if (authUser.isAdmin()) {
+            if (request.getCustomerId() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "customerId is required when placing as admin");
+            }
+            return placeOrderForCustomer(request);
+        }
+        Customer linked = customerRepository.findByUserId(authUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "No customer profile for this account"));
+        PlaceOrderRequest effective = PlaceOrderRequest.builder()
+                .customerId(linked.getId())
+                .storeId(request.getStoreId())
+                .orderType(request.getOrderType())
+                .lines(request.getLines())
+                .build();
+        return placeOrderForCustomer(effective);
+    }
+
+    @Transactional
+    OrderResponse placeOrderForCustomer(PlaceOrderRequest request) {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
-        if (!CustomerStatus.ACTIVE.name().equals(customer.getStatus())) {
+        if (customer.getStatus() != CustomerStatus.ACTIVE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is suspended");
+        }
+        if (!storeRepository.existsById(request.getStoreId())) {
+            throw new ResourceNotFoundException("Store", request.getStoreId());
         }
 
         BigDecimal total = BigDecimal.ZERO;
@@ -78,7 +101,7 @@ public class OrderWorkflowService {
         Order order = Order.builder()
                 .storeId(request.getStoreId())
                 .customerId(request.getCustomerId())
-                .status(OrderStatus.NEW.name())
+                .status(OrderStatus.NEW)
                 .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
                 .totalAmount(total)
                 .build();
@@ -97,7 +120,7 @@ public class OrderWorkflowService {
         }
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
-        if (!CustomerStatus.ACTIVE.name().equals(customer.getStatus())) {
+        if (customer.getStatus() != CustomerStatus.ACTIVE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is suspended");
         }
 
@@ -145,7 +168,7 @@ public class OrderWorkflowService {
         Order order = Order.builder()
                 .storeId(storeId)
                 .customerId(request.getCustomerId())
-                .status(OrderStatus.NEW.name())
+                .status(OrderStatus.NEW)
                 .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
                 .totalAmount(total)
                 .notes(request.getNotes())
@@ -166,11 +189,11 @@ public class OrderWorkflowService {
     @Transactional
     public OrderResponse merchantAccept(Long orderId, List<Long> merchantStoreIds) {
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
-        String status = order.getStatus();
-        if (!OrderStatus.NEW.name().equals(status) && !OrderStatus.PENDING.name().equals(status)) {
+        OrderStatus status = order.getStatus();
+        if (status != OrderStatus.NEW && status != OrderStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be accepted");
         }
-        order.setStatus(OrderStatus.ACCEPTED.name());
+        order.setStatus(OrderStatus.ACCEPTED);
         order.setAcceptedAt(Instant.now());
         order.setRejectedAt(null);
         order.setRejectReason(null);
@@ -180,11 +203,11 @@ public class OrderWorkflowService {
     @Transactional
     public OrderResponse merchantReject(Long orderId, List<Long> merchantStoreIds, String rejectReason) {
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
-        String status = order.getStatus();
-        if (!OrderStatus.NEW.name().equals(status) && !OrderStatus.PENDING.name().equals(status)) {
+        OrderStatus status = order.getStatus();
+        if (status != OrderStatus.NEW && status != OrderStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be rejected");
         }
-        order.setStatus(OrderStatus.REJECTED.name());
+        order.setStatus(OrderStatus.REJECTED);
         order.setAcceptedAt(null);
         order.setRejectedAt(Instant.now());
         order.setRejectReason(rejectReason);
@@ -194,17 +217,15 @@ public class OrderWorkflowService {
     @Transactional
     public OrderResponse updateStatusAfterAcceptance(Long orderId, OrderStatus target, List<Long> merchantStoreIds) {
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
-        OrderStatus current;
-        try {
-            current = OrderStatus.valueOf(order.getStatus());
-        } catch (Exception e) {
+        OrderStatus current = order.getStatus();
+        if (current == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid order status");
         }
         if (!isAllowedStatusTransition(current, target)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Cannot move from " + current + " to " + target);
         }
-        order.setStatus(target.name());
+        order.setStatus(target);
         return DtoMapper.toResponse(orderRepository.save(order));
     }
 
@@ -235,10 +256,13 @@ public class OrderWorkflowService {
     private static boolean isAllowedStatusTransition(OrderStatus from, OrderStatus to) {
         // Only allow merchant PATCH transitions in the public lifecycle:
         // NEW → CANCELED (optional), ACCEPTED → IN_PROGRESS → COMPLETED, and CANCELED from NEW/ACCEPTED/IN_PROGRESS.
+        if (from == OrderStatus.CANCELED || from == OrderStatus.CANCELLED) {
+            return false;
+        }
         if (to == OrderStatus.CANCELED) {
             return from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.ACCEPTED || from == OrderStatus.IN_PROGRESS;
         }
-        if (from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.REJECTED || from == OrderStatus.COMPLETED || from == OrderStatus.CANCELED) {
+        if (from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.REJECTED || from == OrderStatus.COMPLETED) {
             return false;
         }
         return switch (from) {

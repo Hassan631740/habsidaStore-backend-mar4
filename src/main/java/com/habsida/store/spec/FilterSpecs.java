@@ -1,5 +1,7 @@
 package com.habsida.store.spec;
 
+import com.habsida.store.enums.CustomerStatus;
+import com.habsida.store.enums.OrderStatus;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -42,6 +44,10 @@ public final class FilterSpecs {
                 try {
                     if (mode == FilterMode.EQUALS) {
                         predicates.add(cb.equal(root.get(param), value));
+                    } else if (mode == FilterMode.EQUALS_ORDER_STATUS) {
+                        predicates.add(cb.equal(root.get(param), OrderStatus.valueOf(value)));
+                    } else if (mode == FilterMode.EQUALS_CUSTOMER_STATUS) {
+                        predicates.add(cb.equal(root.get(param), CustomerStatus.valueOf(value)));
                     } else if (mode == FilterMode.EQUALS_LONG) {
                         predicates.add(cb.equal(root.get(param), Long.parseLong(value)));
                     } else if (mode == FilterMode.CONTAINS_IGNORE_CASE) {
@@ -63,6 +69,10 @@ public final class FilterSpecs {
 
     public enum FilterMode {
         EQUALS,
+        /** Equality on {@link OrderStatus} (query param must match enum constant name). */
+        EQUALS_ORDER_STATUS,
+        /** Equality on {@link CustomerStatus}. */
+        EQUALS_CUSTOMER_STATUS,
         EQUALS_LONG,
         EQUALS_BOOLEAN,
         CONTAINS_IGNORE_CASE

@@ -30,10 +30,8 @@ public class Customer extends BaseAuditedEntity {
 
     private String phone;
 
-    /**
-     * {@link com.habsida.store.enums.CustomerStatus} name, e.g. ACTIVE, SUSPENDED.
-     */
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 32)
     @Builder.Default
-    private String status = CustomerStatus.ACTIVE.name();
+    private CustomerStatus status = CustomerStatus.ACTIVE;
 }

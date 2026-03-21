@@ -30,7 +30,7 @@ import java.util.Map;
 public class AdminOrderController {
 
     private static final Map<String, FilterSpecs.FilterMode> ORDER_FILTERS = Map.of(
-            "status", FilterSpecs.FilterMode.EQUALS,
+            "status", FilterSpecs.FilterMode.EQUALS_ORDER_STATUS,
             "customerId", FilterSpecs.FilterMode.EQUALS_LONG
     );
 

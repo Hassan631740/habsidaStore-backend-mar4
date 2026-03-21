@@ -18,16 +18,21 @@ public final class DtoMapper {
         if (v == null || v.isBlank()) return null;
         try { return StoreStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
-    private static OrderStatus safeOrderStatus(String v) {
-        if (v == null || v.isBlank()) return null;
-        // Map legacy DB values into the current public lifecycle.
-        String normalized = v;
-        if ("PENDING".equals(v)) normalized = OrderStatus.NEW.name();
-        if ("CONFIRMED".equals(v)) normalized = OrderStatus.ACCEPTED.name();
-        if ("PROCESSING".equals(v) || "READY".equals(v) || "SHIPPED".equals(v)) normalized = OrderStatus.IN_PROGRESS.name();
-        if ("DELIVERED".equals(v)) normalized = OrderStatus.COMPLETED.name();
-        if ("CANCELLED".equals(v)) normalized = OrderStatus.CANCELED.name();
-        try { return OrderStatus.valueOf(normalized); } catch (IllegalArgumentException e) { return null; }
+    /**
+     * Maps persisted legacy {@link OrderStatus} values to the canonical lifecycle shown in API responses.
+     */
+    private static OrderStatus orderStatusForResponse(OrderStatus v) {
+        if (v == null) {
+            return null;
+        }
+        return switch (v) {
+            case PENDING -> OrderStatus.NEW;
+            case CONFIRMED -> OrderStatus.ACCEPTED;
+            case PROCESSING, READY, SHIPPED -> OrderStatus.IN_PROGRESS;
+            case DELIVERED -> OrderStatus.COMPLETED;
+            case CANCELLED -> OrderStatus.CANCELED;
+            default -> v;
+        };
     }
     private static OrderType safeOrderType(String v) {
         if (v == null || v.isBlank()) return null;
@@ -41,11 +46,6 @@ public final class DtoMapper {
         if (v == null || v.isBlank()) return null;
         try { return PaymentStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
-    private static CustomerStatus safeCustomerStatus(String v) {
-        if (v == null || v.isBlank()) return CustomerStatus.ACTIVE;
-        try { return CustomerStatus.valueOf(v); } catch (IllegalArgumentException e) { return CustomerStatus.ACTIVE; }
-    }
-
     // ---------- Address ----------
     public static AddressResponse toResponse(Address e) {
         if (e == null) return null;
@@ -133,6 +133,11 @@ public final class DtoMapper {
     }
 
     // ---------- Customer ----------
+    /** API-facing status when the persisted field is null (defaults to ACTIVE). */
+    public static CustomerStatus customerStatusForResponse(CustomerStatus status) {
+        return status != null ? status : CustomerStatus.ACTIVE;
+    }
+
     public static CustomerResponse toResponse(Customer e) {
         if (e == null) return null;
         return CustomerResponse.builder()
@@ -141,7 +146,7 @@ public final class DtoMapper {
                 .firstName(e.getFirstName())
                 .lastName(e.getLastName())
                 .phone(e.getPhone())
-                .status(safeCustomerStatus(e.getStatus()))
+                .status(customerStatusForResponse(e.getStatus()))
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -154,7 +159,7 @@ public final class DtoMapper {
         e.setFirstName(r.getFirstName());
         e.setLastName(r.getLastName());
         e.setPhone(r.getPhone());
-        e.setStatus(r.getStatus() != null ? r.getStatus().name() : CustomerStatus.ACTIVE.name());
+        e.setStatus(customerStatusForResponse(r.getStatus()));
         return e;
     }
 
@@ -245,7 +250,7 @@ public final class DtoMapper {
                 .id(e.getId())
                 .storeId(e.getStoreId())
                 .customerId(e.getCustomerId())
-                .status(safeOrderStatus(e.getStatus()))
+                .status(orderStatusForResponse(e.getStatus()))
                 .orderType(safeOrderType(e.getOrderType()))
                 .totalAmount(e.getTotalAmount())
                 .acceptedAt(e.getAcceptedAt())
@@ -262,7 +267,7 @@ public final class DtoMapper {
         Order e = new Order();
         e.setStoreId(r.getStoreId());
         e.setCustomerId(r.getCustomerId());
-        e.setStatus(r.getStatus() != null ? r.getStatus().name() : null);
+        e.setStatus(r.getStatus());
         e.setOrderType(r.getOrderType() != null ? r.getOrderType().name() : null);
         e.setTotalAmount(r.getTotalAmount());
         e.setNotes(r.getNotes());

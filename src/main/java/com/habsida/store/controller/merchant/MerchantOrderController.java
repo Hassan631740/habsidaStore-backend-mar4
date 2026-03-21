@@ -41,11 +41,7 @@ public class MerchantOrderController {
             @AuthenticationPrincipal AuthUser authUser,
             @RequestParam(required = false) String status,
             Pageable pageable) {
-        List<Long> storeIds = userStoreAccessRepository.findByUserId(authUser.getId()).stream()
-                .map(usa -> usa.getStoreId())
-                .filter(id -> id != null)
-                .distinct()
-                .toList();
+        List<Long> storeIds = merchantStoreIds(authUser.getId());
         if (storeIds.isEmpty()) {
             return PageResponse.of(org.springframework.data.domain.Page.empty(pageable));
         }
@@ -57,11 +53,7 @@ public class MerchantOrderController {
     public ResponseEntity<OrderResponse> findById(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long id) {
-        List<Long> storeIds = userStoreAccessRepository.findByUserId(authUser.getId()).stream()
-                .map(usa -> usa.getStoreId())
-                .filter(sid -> sid != null)
-                .distinct()
-                .toList();
+        List<Long> storeIds = merchantStoreIds(authUser.getId());
         if (storeIds.isEmpty() || orderRepository.countOrderItemsInStores(id, storeIds) == 0) {
             throw new ResourceNotFoundException("Order", id);
         }

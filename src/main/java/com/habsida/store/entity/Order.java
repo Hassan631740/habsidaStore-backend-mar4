@@ -1,6 +1,7 @@
 package com.habsida.store.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.habsida.store.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,7 +23,9 @@ public class Order extends BaseAuditedEntity {
     @Column(name = "customer_id")
     private Long customerId;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 32)
+    private OrderStatus status;
 
     @Column(name = "order_type")
     private String orderType;
