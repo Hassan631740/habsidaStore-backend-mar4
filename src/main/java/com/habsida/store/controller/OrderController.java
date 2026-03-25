@@ -30,10 +30,14 @@ import java.util.Map;
  * Customer-facing order placement and read access to own orders. Admins see all orders.
  * CRUD for arbitrary order state is available only under {@code /api/admin/orders}.
  */
+/**
+ * Customer self-service order access. Scoped exclusively to the authenticated customer.
+ * Admins use {@code /api/admin/orders} instead.
+ */
 @RestController
-@RequestMapping("/api/orders")
+@RequestMapping("/api/me/orders")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+@PreAuthorize("hasRole('CUSTOMER')")
 public class OrderController {
 
     private static final Map<String, FilterSpecs.FilterMode> ORDER_FILTERS = Map.of(
@@ -62,11 +66,6 @@ public class OrderController {
             @AuthenticationPrincipal AuthUser authUser,
             @RequestParam(required = false) Map<String, String> filter,
             Pageable pageable) {
-        if (authUser.isAdmin()) {
-            Specification<Order> spec = FilterSpecs.from(filter, ORDER_FILTERS);
-            Page<Order> page = spec == null ? repository.findAll(pageable) : repository.findAll(spec, pageable);
-            return PageResponse.of(page.map(DtoMapper::toResponse));
-        }
         Customer customer = customerRepository.findByUserId(authUser.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "No customer profile for this account"));
         Map<String, String> scoped = new HashMap<>();
@@ -85,12 +84,10 @@ public class OrderController {
             @PathVariable Long id) {
         Order order = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
-        if (!authUser.isAdmin()) {
-            Customer customer = customerRepository.findByUserId(authUser.getId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "No customer profile for this account"));
-            if (!customer.getId().equals(order.getCustomerId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this order");
-            }
+        Customer customer = customerRepository.findByUserId(authUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "No customer profile for this account"));
+        if (!customer.getId().equals(order.getCustomerId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this order");
         }
         return ResponseEntity.ok(DtoMapper.toResponse(order));
     }
