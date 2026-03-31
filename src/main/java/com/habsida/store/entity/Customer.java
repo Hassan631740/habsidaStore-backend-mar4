@@ -1,5 +1,6 @@
 package com.habsida.store.entity;
 
+import com.habsida.store.enums.CustomerStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -28,4 +29,11 @@ public class Customer extends BaseAuditedEntity {
     private String lastName;
 
     private String phone;
+
+    /**
+     * {@link com.habsida.store.enums.CustomerStatus} name, e.g. ACTIVE, SUSPENDED.
+     */
+    @Column(name = "status", length = 32)
+    @Builder.Default
+    private String status = CustomerStatus.ACTIVE.name();
 }

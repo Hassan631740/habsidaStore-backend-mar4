@@ -1,5 +1,6 @@
 package com.habsida.store.dto.request;
 
+import com.habsida.store.enums.CustomerStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -23,4 +24,7 @@ public class CustomerRequest {
     private String lastName;
 
     private String phone;
+
+    /** Defaults to ACTIVE when omitted. */
+    private CustomerStatus status;
 }

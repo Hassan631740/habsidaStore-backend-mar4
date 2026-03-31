@@ -19,6 +19,9 @@ public class Category extends BaseEntity {
     @Column(name = "parent_id")
     private Long parentId;
 
+    @Column(name = "store_id")
+    private Long storeId;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id", insertable = false, updatable = false)

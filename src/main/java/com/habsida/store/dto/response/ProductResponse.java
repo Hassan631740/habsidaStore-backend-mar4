@@ -20,6 +20,7 @@ public class ProductResponse {
     private BigDecimal price;
     private Long categoryId;
     private Long storeId;
+    private Boolean availableForOrder;
     private Instant createdAt;
     private Instant updatedAt;
 }

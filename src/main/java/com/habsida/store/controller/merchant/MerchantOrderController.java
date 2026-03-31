@@ -2,11 +2,14 @@ package com.habsida.store.controller.merchant;
 
 import com.habsida.store.dto.PageResponse;
 import com.habsida.store.dto.DtoMapper;
+import com.habsida.store.dto.request.MerchantOrderStatusRequest;
 import com.habsida.store.dto.response.OrderResponse;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.repository.UserStoreAccessRepository;
 import com.habsida.store.security.AuthUser;
+import com.habsida.store.service.OrderWorkflowService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +30,7 @@ public class MerchantOrderController {
 
     private final OrderRepository orderRepository;
     private final UserStoreAccessRepository userStoreAccessRepository;
+    private final OrderWorkflowService orderWorkflowService;
 
     @GetMapping
     public PageResponse<OrderResponse> findMyOrders(
@@ -58,5 +62,41 @@ public class MerchantOrderController {
         }
         return ResponseEntity.ok(DtoMapper.toResponse(
                 orderRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Order", id))));
+    }
+
+    @PostMapping("/{id}/accept")
+    public ResponseEntity<OrderResponse> accept(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long id) {
+        List<Long> storeIds = merchantStoreIds(authUser.getId());
+        return ResponseEntity.ok(orderWorkflowService.merchantAccept(id, storeIds));
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<OrderResponse> reject(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long id) {
+        List<Long> storeIds = merchantStoreIds(authUser.getId());
+        return ResponseEntity.ok(orderWorkflowService.merchantReject(id, storeIds));
+    }
+
+    /**
+     * After accept: CONFIRMED → PROCESSING → READY → SHIPPED → DELIVERED, or CANCELLED (not from PENDING; use reject).
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<OrderResponse> updateStatus(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long id,
+            @Valid @RequestBody MerchantOrderStatusRequest request) {
+        List<Long> storeIds = merchantStoreIds(authUser.getId());
+        return ResponseEntity.ok(orderWorkflowService.updateStatusAfterAcceptance(id, request.getStatus(), storeIds));
+    }
+
+    private List<Long> merchantStoreIds(Long userId) {
+        return userStoreAccessRepository.findByUserId(userId).stream()
+                .map(usa -> usa.getStoreId())
+                .filter(sid -> sid != null)
+                .distinct()
+                .toList();
     }
 }

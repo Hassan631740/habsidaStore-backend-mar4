@@ -8,4 +8,8 @@ import java.util.List;
 public interface UserStoreAccessRepository extends JpaRepository<UserStoreAccess, Long> {
 
     List<UserStoreAccess> findByUserId(Long userId);
+
+    List<UserStoreAccess> findByStoreId(Long storeId);
+
+    boolean existsByUserIdAndStoreId(Long userId, Long storeId);
 }

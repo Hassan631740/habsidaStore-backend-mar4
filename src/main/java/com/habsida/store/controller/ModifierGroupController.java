@@ -12,10 +12,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/modifier-groups")
 @RequiredArgsConstructor
+@Tag(name = "Modifiers", description = "Modifier groups, options, assign to products")
 public class ModifierGroupController {
 
     private final ModifierGroupRepository repository;

@@ -34,6 +34,10 @@ public final class DtoMapper {
         if (v == null || v.isBlank()) return null;
         try { return PaymentStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
+    private static CustomerStatus safeCustomerStatus(String v) {
+        if (v == null || v.isBlank()) return CustomerStatus.ACTIVE;
+        try { return CustomerStatus.valueOf(v); } catch (IllegalArgumentException e) { return CustomerStatus.ACTIVE; }
+    }
 
     // ---------- Address ----------
     public static AddressResponse toResponse(Address e) {
@@ -107,6 +111,7 @@ public final class DtoMapper {
                 .name(e.getName())
                 .slug(e.getSlug())
                 .parentId(e.getParentId())
+                .storeId(e.getStoreId())
                 .build();
     }
 
@@ -115,6 +120,7 @@ public final class DtoMapper {
         Category e = new Category();
         e.setName(r.getName());
         e.setSlug(r.getSlug());
+        e.setStoreId(r.getStoreId());
         e.setParentId(r.getParentId());
         return e;
     }
@@ -128,6 +134,7 @@ public final class DtoMapper {
                 .firstName(e.getFirstName())
                 .lastName(e.getLastName())
                 .phone(e.getPhone())
+                .status(safeCustomerStatus(e.getStatus()))
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -140,6 +147,7 @@ public final class DtoMapper {
         e.setFirstName(r.getFirstName());
         e.setLastName(r.getLastName());
         e.setPhone(r.getPhone());
+        e.setStatus(r.getStatus() != null ? r.getStatus().name() : CustomerStatus.ACTIVE.name());
         return e;
     }
 
@@ -341,6 +349,7 @@ public final class DtoMapper {
                 .price(e.getPrice())
                 .categoryId(e.getCategoryId())
                 .storeId(e.getStoreId())
+                .availableForOrder(e.getAvailableForOrder() != null ? e.getAvailableForOrder() : true)
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -354,6 +363,7 @@ public final class DtoMapper {
         e.setPrice(r.getPrice());
         e.setCategoryId(r.getCategoryId());
         e.setStoreId(r.getStoreId());
+        e.setAvailableForOrder(r.getAvailableForOrder() != null ? r.getAvailableForOrder() : true);
         return e;
     }
 

@@ -15,4 +15,5 @@ public class CategoryResponse {
     private String name;
     private String slug;
     private Long parentId;
+    private Long storeId;
 }

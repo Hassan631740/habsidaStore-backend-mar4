@@ -5,6 +5,7 @@ import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.CustomerRequest;
 import com.habsida.store.dto.response.CustomerResponse;
 import com.habsida.store.entity.Customer;
+import com.habsida.store.enums.CustomerStatus;
 import com.habsida.store.repository.CustomerRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,12 +43,20 @@ public class CustomerController {
 
     @PutMapping("/{id}")
     public ResponseEntity<CustomerResponse> update(@PathVariable Long id, @Valid @RequestBody CustomerRequest request) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        Customer entity = DtoMapper.toEntity(request);
-        entity.setId(id);
-        return ResponseEntity.ok(DtoMapper.toResponse(repository.save(entity)));
+        return repository.findById(id)
+                .map(existing -> {
+                    existing.setUserId(request.getUserId());
+                    existing.setFirstName(request.getFirstName());
+                    existing.setLastName(request.getLastName());
+                    existing.setPhone(request.getPhone());
+                    if (request.getStatus() != null) {
+                        existing.setStatus(request.getStatus().name());
+                    } else if (existing.getStatus() == null || existing.getStatus().isBlank()) {
+                        existing.setStatus(CustomerStatus.ACTIVE.name());
+                    }
+                    return ResponseEntity.ok(DtoMapper.toResponse(repository.save(existing)));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
