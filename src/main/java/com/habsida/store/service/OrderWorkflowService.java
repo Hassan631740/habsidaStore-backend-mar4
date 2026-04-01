@@ -233,7 +233,11 @@ public class OrderWorkflowService {
         }
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
-        if (order.getStoreId() != null && merchantStoreIds.contains(order.getStoreId())) {
+        if (order.getStoreId() != null) {
+            if (!merchantStoreIds.contains(order.getStoreId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Order does not belong to your store(s)");
+            }
             return order;
         }
         long totalItems = orderItemRepository.countByOrderId(orderId);
