@@ -182,7 +182,7 @@ public class OrderWorkflowService {
                 orderItemModifierRepository.save(m);
             }
         }
-        return DtoMapper.toResponse(orderRepository.findById(saved.getId()).orElseThrow());
+        return DtoMapper.toResponse(saved);
     }
 
     @Transactional
