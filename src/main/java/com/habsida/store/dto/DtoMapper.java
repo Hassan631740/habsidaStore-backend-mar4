@@ -18,14 +18,6 @@ public final class DtoMapper {
         if (v == null || v.isBlank()) return null;
         try { return StoreStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
-    private static OrderStatus safeOrderStatus(String v) {
-        if (v == null || v.isBlank()) return null;
-        try { return OrderStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
-    }
-    private static OrderType safeOrderType(String v) {
-        if (v == null || v.isBlank()) return null;
-        try { return OrderType.valueOf(v); } catch (IllegalArgumentException e) { return null; }
-    }
     private static PaymentMethod safePaymentMethod(String v) {
         if (v == null || v.isBlank()) return null;
         try { return PaymentMethod.valueOf(v); } catch (IllegalArgumentException e) { return null; }
@@ -34,11 +26,6 @@ public final class DtoMapper {
         if (v == null || v.isBlank()) return null;
         try { return PaymentStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
-    private static CustomerStatus safeCustomerStatus(String v) {
-        if (v == null || v.isBlank()) return CustomerStatus.ACTIVE;
-        try { return CustomerStatus.valueOf(v); } catch (IllegalArgumentException e) { return CustomerStatus.ACTIVE; }
-    }
-
     // ---------- Address ----------
     public static AddressResponse toResponse(Address e) {
         if (e == null) return null;
@@ -134,7 +121,7 @@ public final class DtoMapper {
                 .firstName(e.getFirstName())
                 .lastName(e.getLastName())
                 .phone(e.getPhone())
-                .status(safeCustomerStatus(e.getStatus()))
+                .status(e.getStatus())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -147,7 +134,7 @@ public final class DtoMapper {
         e.setFirstName(r.getFirstName());
         e.setLastName(r.getLastName());
         e.setPhone(r.getPhone());
-        e.setStatus(r.getStatus() != null ? r.getStatus().name() : CustomerStatus.ACTIVE.name());
+        e.setStatus(r.getStatus() != null ? r.getStatus() : CustomerStatus.ACTIVE);
         return e;
     }
 
@@ -238,8 +225,8 @@ public final class DtoMapper {
                 .id(e.getId())
                 .storeId(e.getStoreId())
                 .customerId(e.getCustomerId())
-                .status(safeOrderStatus(e.getStatus()))
-                .orderType(safeOrderType(e.getOrderType()))
+                .status(e.getStatus())
+                .orderType(e.getOrderType())
                 .totalAmount(e.getTotalAmount())
                 .acceptedAt(e.getAcceptedAt())
                 .rejectReason(e.getRejectReason())
@@ -249,13 +236,20 @@ public final class DtoMapper {
                 .build();
     }
 
+    public static OrderResponse toResponse(Order e, List<OrderItem> items) {
+        if (e == null) return null;
+        OrderResponse response = toResponse(e);
+        response.setItems(items == null ? null : items.stream().map(DtoMapper::toResponse).toList());
+        return response;
+    }
+
     public static Order toEntity(OrderRequest r) {
         if (r == null) return null;
         Order e = new Order();
         e.setStoreId(r.getStoreId());
         e.setCustomerId(r.getCustomerId());
-        e.setStatus(r.getStatus() != null ? r.getStatus().name() : null);
-        e.setOrderType(r.getOrderType() != null ? r.getOrderType().name() : null);
+        e.setStatus(r.getStatus());
+        e.setOrderType(r.getOrderType());
         e.setTotalAmount(r.getTotalAmount());
         e.setNotes(r.getNotes());
         return e;

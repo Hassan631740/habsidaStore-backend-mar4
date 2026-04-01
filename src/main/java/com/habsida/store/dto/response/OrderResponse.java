@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
@@ -27,4 +28,5 @@ public class OrderResponse {
     private String notes;
     private Instant createdAt;
     private Instant updatedAt;
+    private List<OrderItemResponse> items;
 }

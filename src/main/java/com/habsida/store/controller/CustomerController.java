@@ -50,9 +50,9 @@ public class CustomerController {
                     existing.setLastName(request.getLastName());
                     existing.setPhone(request.getPhone());
                     if (request.getStatus() != null) {
-                        existing.setStatus(request.getStatus().name());
-                    } else if (existing.getStatus() == null || existing.getStatus().isBlank()) {
-                        existing.setStatus(CustomerStatus.ACTIVE.name());
+                        existing.setStatus(request.getStatus());
+                    } else if (existing.getStatus() == null) {
+                        existing.setStatus(CustomerStatus.ACTIVE);
                     }
                     return ResponseEntity.ok(DtoMapper.toResponse(repository.save(existing)));
                 })

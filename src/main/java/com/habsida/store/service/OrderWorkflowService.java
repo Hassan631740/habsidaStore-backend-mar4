@@ -47,7 +47,7 @@ public class OrderWorkflowService {
     public OrderResponse placeOrder(PlaceOrderRequest request) {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
-        if (!CustomerStatus.ACTIVE.name().equals(customer.getStatus())) {
+        if (CustomerStatus.ACTIVE != customer.getStatus()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is suspended");
         }
 
@@ -95,21 +95,23 @@ public class OrderWorkflowService {
         Order order = Order.builder()
                 .storeId(request.getStoreId())
                 .customerId(request.getCustomerId())
-                .status(OrderStatus.NEW.name())
-                .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
+                .status(OrderStatus.NEW)
+                .orderType(request.getOrderType())
                 .totalAmount(total)
                 .build();
         Order saved = orderRepository.save(order);
+        List<OrderItem> savedItems = new ArrayList<>();
         for (int i = 0; i < items.size(); i++) {
             OrderItem oi = items.get(i);
             oi.setOrderId(saved.getId());
             OrderItem savedItem = orderItemRepository.save(oi);
+            savedItems.add(savedItem);
             for (OrderItemModifier m : modifiersPerLine.get(i)) {
                 m.setOrderItemId(savedItem.getId());
                 orderItemModifierRepository.save(m);
             }
         }
-        return DtoMapper.toResponse(orderRepository.findById(saved.getId()).orElseThrow());
+        return DtoMapper.toResponse(saved, savedItems);
     }
 
     @Transactional
@@ -119,7 +121,7 @@ public class OrderWorkflowService {
         }
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
-        if (!CustomerStatus.ACTIVE.name().equals(customer.getStatus())) {
+        if (CustomerStatus.ACTIVE != customer.getStatus()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is suspended");
         }
 
@@ -167,8 +169,8 @@ public class OrderWorkflowService {
         Order order = Order.builder()
                 .storeId(storeId)
                 .customerId(request.getCustomerId())
-                .status(OrderStatus.NEW.name())
-                .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
+                .status(OrderStatus.NEW)
+                .orderType(request.getOrderType())
                 .totalAmount(total)
                 .notes(request.getNotes())
                 .build();
@@ -183,49 +185,50 @@ public class OrderWorkflowService {
             }
         }
         orderItemModifierRepository.saveAll(allModifiers);
-        return DtoMapper.toResponse(saved);
+        return DtoMapper.toResponse(saved, savedItems);
     }
 
     @Transactional
     public OrderResponse merchantAccept(Long orderId, List<Long> merchantStoreIds) {
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
-        String status = order.getStatus();
-        if (!OrderStatus.NEW.name().equals(status) && !OrderStatus.PENDING.name().equals(status)) {
+        OrderStatus status = order.getStatus();
+        if (status != OrderStatus.NEW && status != OrderStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be accepted");
         }
-        order.setStatus(OrderStatus.CONFIRMED.name());
+        order.setStatus(OrderStatus.CONFIRMED);
         order.setAcceptedAt(Instant.now());
         order.setRejectReason(null);
-        return DtoMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
     }
 
     @Transactional
     public OrderResponse merchantReject(Long orderId, List<Long> merchantStoreIds, String rejectReason) {
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
-        String status = order.getStatus();
-        if (!OrderStatus.NEW.name().equals(status) && !OrderStatus.PENDING.name().equals(status)) {
+        OrderStatus status = order.getStatus();
+        if (status != OrderStatus.NEW && status != OrderStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be rejected");
         }
-        order.setStatus(OrderStatus.REJECTED.name());
+        order.setStatus(OrderStatus.REJECTED);
         order.setRejectReason(rejectReason);
-        return DtoMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
     }
 
     @Transactional
     public OrderResponse updateStatusAfterAcceptance(Long orderId, OrderStatus target, List<Long> merchantStoreIds) {
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
-        OrderStatus current;
-        try {
-            current = OrderStatus.valueOf(order.getStatus());
-        } catch (Exception e) {
+        OrderStatus current = order.getStatus();
+        if (current == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid order status");
         }
         if (!isAllowedStatusTransition(current, target)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Cannot move from " + current + " to " + target);
         }
-        order.setStatus(target.name());
-        return DtoMapper.toResponse(orderRepository.save(order));
+        order.setStatus(target);
+        Order saved = orderRepository.save(order);
+        return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
     }
 
     private Order loadOrderForFullStoreOwnership(Long orderId, List<Long> merchantStoreIds) {

@@ -81,7 +81,7 @@ public class AdminCustomerController {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .phone(request.getPhone())
-                .status(st.name())
+                .status(st)
                 .build();
         customer = customerRepository.save(customer);
 
@@ -105,19 +105,8 @@ public class AdminCustomerController {
             @Valid @RequestBody CustomerStatusUpdateRequest request) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", id));
-        customer.setStatus(request.getStatus().name());
+        customer.setStatus(request.getStatus());
         return ResponseEntity.ok(DtoMapper.toResponse(customerRepository.save(customer)));
-    }
-
-    private static CustomerStatus parseCustomerStatus(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return CustomerStatus.ACTIVE;
-        }
-        try {
-            return CustomerStatus.valueOf(raw);
-        } catch (IllegalArgumentException e) {
-            return CustomerStatus.ACTIVE;
-        }
     }
 
     private static AdminCustomerDetailResponse toDetail(Customer c, List<AddressResponse> addresses) {
@@ -127,7 +116,7 @@ public class AdminCustomerController {
                 .firstName(c.getFirstName())
                 .lastName(c.getLastName())
                 .phone(c.getPhone())
-                .status(parseCustomerStatus(c.getStatus()))
+                .status(c.getStatus())
                 .addresses(addresses)
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())
