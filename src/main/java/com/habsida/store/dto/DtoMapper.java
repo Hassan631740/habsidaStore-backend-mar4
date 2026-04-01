@@ -6,6 +6,8 @@ import com.habsida.store.entity.*;
 import com.habsida.store.enums.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
+
 /**
  * Maps between entities and Request/Response DTOs.
  * For Store: after toEntity(StoreRequest), set entity.setAddress(addressRepo.getReferenceById(request.getAddressId())) before save.
