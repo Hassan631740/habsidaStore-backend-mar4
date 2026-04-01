@@ -53,6 +53,7 @@ public class OrderWorkflowService {
 
         BigDecimal total = BigDecimal.ZERO;
         List<OrderItem> items = new ArrayList<>();
+        List<List<OrderItemModifier>> modifiersPerLine = new ArrayList<>();
         for (PlaceOrderRequest.OrderLineRequest line : request.getLines()) {
             Product p = productRepository.findById(line.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product", line.getProductId()));
@@ -65,7 +66,22 @@ public class OrderWorkflowService {
                         "Product " + line.getProductId() + " is not available for order");
             }
             BigDecimal unit = p.getPrice() != null ? p.getPrice() : BigDecimal.ZERO;
-            total = total.add(unit.multiply(BigDecimal.valueOf(line.getQuantity())));
+            BigDecimal lineTotal = unit.multiply(BigDecimal.valueOf(line.getQuantity()));
+            List<OrderItemModifier> modifiers = new ArrayList<>();
+            if (line.getModifierOptionIds() != null) {
+                for (Long optionId : line.getModifierOptionIds()) {
+                    ModifierOption opt = modifierOptionRepository.findById(optionId)
+                            .orElseThrow(() -> new ResourceNotFoundException("ModifierOption", optionId));
+                    BigDecimal adj = opt.getPriceAdjustment() != null ? opt.getPriceAdjustment() : BigDecimal.ZERO;
+                    lineTotal = lineTotal.add(adj.multiply(BigDecimal.valueOf(line.getQuantity())));
+                    modifiers.add(OrderItemModifier.builder()
+                            .modifierOptionId(opt.getId())
+                            .optionNameSnapshot(opt.getName())
+                            .price(opt.getPriceAdjustment())
+                            .build());
+                }
+            }
+            total = total.add(lineTotal);
             items.add(OrderItem.builder()
                     .productId(p.getId())
                     .productNameSnapshot(p.getName())
@@ -73,6 +89,7 @@ public class OrderWorkflowService {
                     .quantity(line.getQuantity())
                     .price(unit)
                     .build());
+            modifiersPerLine.add(modifiers);
         }
 
         Order order = Order.builder()
@@ -83,11 +100,16 @@ public class OrderWorkflowService {
                 .totalAmount(total)
                 .build();
         Order saved = orderRepository.save(order);
-        for (OrderItem oi : items) {
+        for (int i = 0; i < items.size(); i++) {
+            OrderItem oi = items.get(i);
             oi.setOrderId(saved.getId());
+            OrderItem savedItem = orderItemRepository.save(oi);
+            for (OrderItemModifier m : modifiersPerLine.get(i)) {
+                m.setOrderItemId(savedItem.getId());
+                orderItemModifierRepository.save(m);
+            }
         }
-        orderItemRepository.saveAll(items);
-        return DtoMapper.toResponse(saved);
+        return DtoMapper.toResponse(orderRepository.findById(saved.getId()).orElseThrow());
     }
 
     @Transactional
