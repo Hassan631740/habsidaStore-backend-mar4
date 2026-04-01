@@ -95,7 +95,7 @@ public class OrderWorkflowService {
         Order order = Order.builder()
                 .storeId(request.getStoreId())
                 .customerId(request.getCustomerId())
-                .status(OrderStatus.PENDING.name())
+                .status(OrderStatus.NEW.name())
                 .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
                 .totalAmount(total)
                 .build();
