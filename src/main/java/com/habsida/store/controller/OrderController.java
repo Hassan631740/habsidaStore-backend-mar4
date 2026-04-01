@@ -20,7 +20,7 @@ public class OrderController {
 
     /**
      * Place a new order. Authenticated customers only.
-     * Status starts as PENDING (merchant must accept/reject via merchant workflow).
+     * Status starts as NEW (merchant must accept/reject via merchant workflow).
      */
     @PostMapping("/place")
     public ResponseEntity<OrderResponse> place(@Valid @RequestBody PlaceOrderRequest request) {
