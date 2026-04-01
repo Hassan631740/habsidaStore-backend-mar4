@@ -29,6 +29,7 @@ public class OrderItem extends BaseEntity {
 
     private Integer quantity;
 
+    /** Line total: (unitPrice + modifier adjustments) × quantity. */
     @Column(precision = 19, scale = 4)
     private BigDecimal price;
 

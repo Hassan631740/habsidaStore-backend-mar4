@@ -87,7 +87,7 @@ public class OrderWorkflowService {
                     .productNameSnapshot(p.getName())
                     .unitPriceSnapshot(unit)
                     .quantity(line.getQuantity())
-                    .price(unit)
+                    .price(lineTotal)
                     .build());
             modifiersPerLine.add(modifiers);
         }
@@ -159,7 +159,7 @@ public class OrderWorkflowService {
                     .productNameSnapshot(p.getName())
                     .unitPriceSnapshot(unit)
                     .quantity(line.getQuantity())
-                    .price(unit)
+                    .price(lineTotal)
                     .build());
             modifiersPerLine.add(modifiers);
         }
@@ -173,15 +173,16 @@ public class OrderWorkflowService {
                 .notes(request.getNotes())
                 .build();
         Order saved = orderRepository.save(order);
-        for (int i = 0; i < items.size(); i++) {
-            OrderItem oi = items.get(i);
-            oi.setOrderId(saved.getId());
-            OrderItem savedItem = orderItemRepository.save(oi);
+        items.forEach(oi -> oi.setOrderId(saved.getId()));
+        List<OrderItem> savedItems = orderItemRepository.saveAll(items);
+        List<OrderItemModifier> allModifiers = new ArrayList<>();
+        for (int i = 0; i < savedItems.size(); i++) {
             for (OrderItemModifier m : modifiersPerLine.get(i)) {
-                m.setOrderItemId(savedItem.getId());
-                orderItemModifierRepository.save(m);
+                m.setOrderItemId(savedItems.get(i).getId());
+                allModifiers.add(m);
             }
         }
+        orderItemModifierRepository.saveAll(allModifiers);
         return DtoMapper.toResponse(saved);
     }
 
