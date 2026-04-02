@@ -5,6 +5,7 @@ import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.OrderRequest;
 import com.habsida.store.dto.response.OrderResponse;
 import com.habsida.store.entity.Order;
+import com.habsida.store.enums.OrderStatus;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.spec.FilterSpecs;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -55,17 +57,35 @@ public class AdminOrderController {
     @PostMapping
     public ResponseEntity<OrderResponse> create(@Valid @RequestBody OrderRequest request) {
         Order entity = DtoMapper.toEntity(request);
-        Order saved = repository.save(entity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(saved));
+        if (request.getStatus() == OrderStatus.ACCEPTED) {
+            entity.setAcceptedAt(Instant.now());
+        } else if (request.getStatus() == OrderStatus.REJECTED) {
+            entity.setRejectedAt(Instant.now());
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(repository.save(entity)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<OrderResponse> update(@PathVariable Long id, @Valid @RequestBody OrderRequest request) {
         Order existing = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", id));
-        Order entity = DtoMapper.toEntity(request);
-        entity.setId(id);
-        return ResponseEntity.ok(DtoMapper.toResponse(repository.save(entity)));
+        // Mutate the loaded entity to preserve audit timestamps and DB-generated fields
+        existing.setStoreId(request.getStoreId());
+        existing.setCustomerId(request.getCustomerId());
+        existing.setOrderType(request.getOrderType() != null ? request.getOrderType().name() : null);
+        existing.setTotalAmount(request.getTotalAmount());
+        existing.setNotes(request.getNotes());
+        OrderStatus prev = existing.getStatus();
+        existing.setStatus(request.getStatus());
+        if (request.getStatus() == OrderStatus.ACCEPTED && prev != OrderStatus.ACCEPTED) {
+            existing.setAcceptedAt(Instant.now());
+            existing.setRejectedAt(null);
+            existing.setRejectReason(null);
+        } else if (request.getStatus() == OrderStatus.REJECTED && prev != OrderStatus.REJECTED) {
+            existing.setRejectedAt(Instant.now());
+            existing.setAcceptedAt(null);
+        }
+        return ResponseEntity.ok(DtoMapper.toResponse(repository.save(existing)));
     }
 
     @DeleteMapping("/{id}")
