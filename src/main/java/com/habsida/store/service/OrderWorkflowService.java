@@ -87,7 +87,6 @@ public class OrderWorkflowService {
                     .productNameSnapshot(p.getName())
                     .unitPriceSnapshot(unit)
                     .quantity(line.getQuantity())
-                    .price(unit)
                     .build());
         }
 
@@ -143,7 +142,7 @@ public class OrderWorkflowService {
                     modifiers.add(OrderItemModifier.builder()
                             .modifierOptionId(opt.getId())
                             .optionNameSnapshot(opt.getName())
-                            .price(opt.getPriceAdjustment())
+                            .price(adj)
                             .build());
                 }
             }
@@ -153,7 +152,6 @@ public class OrderWorkflowService {
                     .productNameSnapshot(p.getName())
                     .unitPriceSnapshot(unit)
                     .quantity(line.getQuantity())
-                    .price(unit)
                     .build());
             modifiersPerLine.add(modifiers);
         }

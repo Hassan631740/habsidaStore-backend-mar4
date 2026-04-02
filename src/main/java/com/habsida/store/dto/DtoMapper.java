@@ -302,7 +302,7 @@ public final class DtoMapper {
                 .productNameSnapshot(e.getProductNameSnapshot())
                 .unitPriceSnapshot(e.getUnitPriceSnapshot())
                 .quantity(e.getQuantity())
-                .price(e.getPrice())
+                .price(e.getUnitPriceSnapshot())
                 .build();
     }
 
