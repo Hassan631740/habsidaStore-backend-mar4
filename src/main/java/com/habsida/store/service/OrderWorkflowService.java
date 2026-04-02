@@ -225,7 +225,7 @@ public class OrderWorkflowService {
 
     private Order loadOrderForFullStoreOwnership(Long orderId, List<Long> merchantStoreIds) {
         if (merchantStoreIds == null || merchantStoreIds.isEmpty()) {
-            throw new ResourceNotFoundException("Order", orderId);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Merchant has no assigned stores");
         }
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
