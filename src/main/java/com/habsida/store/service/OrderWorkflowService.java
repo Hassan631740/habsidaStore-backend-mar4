@@ -46,12 +46,6 @@ public class OrderWorkflowService {
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request, AuthUser authUser) {
-        if (authUser.isAdmin()) {
-            if (request.getCustomerId() == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "customerId is required when placing as admin");
-            }
-            return placeOrderForCustomer(request);
-        }
         Customer linked = customerRepository.findByUserId(authUser.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "No customer profile for this account"));
         PlaceOrderRequest effective = PlaceOrderRequest.builder()

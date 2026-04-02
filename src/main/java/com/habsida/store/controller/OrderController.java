@@ -27,10 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Customer-facing order placement and read access to own orders. Admins see all orders.
- * CRUD for arbitrary order state is available only under {@code /api/admin/orders}.
- */
-/**
  * Customer self-service order access. Scoped exclusively to the authenticated customer.
  * Admins use {@code /api/admin/orders} instead.
  */
@@ -51,8 +47,7 @@ public class OrderController {
 
     /**
      * Create a single-store order from line items. Status starts as NEW (merchant accept/reject).
-     * Non-admins: {@code customerId} is taken from the JWT-linked customer, not from the body.
-     * Admins: must send {@code customerId} in the body (place on behalf of that customer).
+     * {@code customerId} is resolved from the JWT-linked customer; any value in the body is ignored.
      */
     @PostMapping("/place")
     public ResponseEntity<OrderResponse> place(
