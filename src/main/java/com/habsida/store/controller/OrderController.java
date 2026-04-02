@@ -9,7 +9,7 @@ import com.habsida.store.entity.Order;
 import com.habsida.store.repository.CustomerRepository;
 import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.security.AuthUser;
-import com.habsida.store.service.OrderWorkflowService;
+import com.habsida.store.service.OrderPlacementService;
 import com.habsida.store.spec.FilterSpecs;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,7 @@ public class OrderController {
 
     private final OrderRepository repository;
     private final CustomerRepository customerRepository;
-    private final OrderWorkflowService orderWorkflowService;
+    private final OrderPlacementService orderPlacementService;
 
     /**
      * Create a single-store order from line items. Status starts as NEW (merchant accept/reject).
@@ -53,7 +53,7 @@ public class OrderController {
     public ResponseEntity<OrderResponse> place(
             @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody PlaceOrderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderWorkflowService.placeOrder(request, authUser));
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderPlacementService.placeOrder(request, authUser));
     }
 
     @GetMapping

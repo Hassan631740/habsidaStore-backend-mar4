@@ -10,7 +10,7 @@ import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.repository.UserStoreAccessRepository;
 import com.habsida.store.security.AuthUser;
-import com.habsida.store.service.OrderWorkflowService;
+import com.habsida.store.service.OrderLifecycleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -32,7 +32,7 @@ public class MerchantOrderController {
 
     private final OrderRepository orderRepository;
     private final UserStoreAccessRepository userStoreAccessRepository;
-    private final OrderWorkflowService orderWorkflowService;
+    private final OrderLifecycleService orderLifecycleService;
 
     /**
      * List orders for the merchant's stores. Optional filter: ?status=NEW (or other OrderStatus).
@@ -67,7 +67,7 @@ public class MerchantOrderController {
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long id) {
         List<Long> storeIds = merchantStoreIds(authUser.getId());
-        return ResponseEntity.ok(orderWorkflowService.merchantAccept(id, storeIds));
+        return ResponseEntity.ok(orderLifecycleService.merchantAccept(id, storeIds));
     }
 
     @PostMapping("/{id}/reject")
@@ -77,7 +77,7 @@ public class MerchantOrderController {
             @RequestBody(required = false) MerchantOrderRejectRequest body) {
         List<Long> storeIds = merchantStoreIds(authUser.getId());
         String reason = body != null ? body.getRejectReason() : null;
-        return ResponseEntity.ok(orderWorkflowService.merchantReject(id, storeIds, reason));
+        return ResponseEntity.ok(orderLifecycleService.merchantReject(id, storeIds, reason));
     }
 
     /**
@@ -91,7 +91,7 @@ public class MerchantOrderController {
             @PathVariable Long id,
             @Valid @RequestBody MerchantOrderStatusRequest request) {
         List<Long> storeIds = merchantStoreIds(authUser.getId());
-        return ResponseEntity.ok(orderWorkflowService.updateStatusAfterAcceptance(id, request.getStatus(), storeIds));
+        return ResponseEntity.ok(orderLifecycleService.updateStatusAfterAcceptance(id, request.getStatus(), storeIds));
     }
 
     private List<Long> merchantStoreIds(Long userId) {

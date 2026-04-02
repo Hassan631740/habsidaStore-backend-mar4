@@ -32,7 +32,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-@Service
+// Split into OrderPlacementService and OrderLifecycleService — this class can be deleted.
 @RequiredArgsConstructor
 public class OrderWorkflowService {
 

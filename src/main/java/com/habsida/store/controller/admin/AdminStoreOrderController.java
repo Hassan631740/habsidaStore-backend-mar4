@@ -4,7 +4,7 @@ import com.habsida.store.dto.request.CreateOrderRequest;
 import com.habsida.store.dto.response.OrderResponse;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.StoreRepository;
-import com.habsida.store.service.OrderWorkflowService;
+import com.habsida.store.service.OrderPlacementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminStoreOrderController {
 
     private final StoreRepository storeRepository;
-    private final OrderWorkflowService orderWorkflowService;
+    private final OrderPlacementService orderPlacementService;
 
     @PostMapping
     public ResponseEntity<OrderResponse> create(
@@ -32,7 +32,7 @@ public class AdminStoreOrderController {
         if (!storeRepository.existsById(storeId)) {
             throw new ResourceNotFoundException("Store", storeId);
         }
-        OrderResponse created = orderWorkflowService.createOrderForStore(storeId, request);
+        OrderResponse created = orderPlacementService.createOrderForStore(storeId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }
