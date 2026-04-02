@@ -19,7 +19,12 @@ public final class DtoMapper {
         try { return StoreStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
     /**
-     * Maps persisted legacy {@link OrderStatus} values to the canonical lifecycle shown in API responses.
+     * Normalizes legacy {@link OrderStatus} values on read so API responses always use canonical names.
+     * The DB may contain PENDING, CONFIRMED, PROCESSING, READY, SHIPPED, DELIVERED, or CANCELLED
+     * for orders created before the lifecycle was simplified. These are mapped to their canonical
+     * equivalents (NEW, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELED) on the way out.
+     * {@code FilterSpecs.canonicalAndLegacyAliases} mirrors this mapping for query-param filtering,
+     * and {@code OrderRepository.findByStoreIdsAndStatus} does the same in JPQL.
      */
     private static OrderStatus orderStatusForResponse(OrderStatus v) {
         if (v == null) {
