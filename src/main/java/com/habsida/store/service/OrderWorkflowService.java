@@ -57,8 +57,7 @@ public class OrderWorkflowService {
         return placeOrderForCustomer(effective);
     }
 
-    @Transactional
-    OrderResponse placeOrderForCustomer(PlaceOrderRequest request) {
+    private OrderResponse placeOrderForCustomer(PlaceOrderRequest request) {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
         if (customer.getStatus() != CustomerStatus.ACTIVE) {
