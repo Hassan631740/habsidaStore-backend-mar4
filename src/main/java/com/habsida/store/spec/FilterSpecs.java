@@ -45,7 +45,8 @@ public final class FilterSpecs {
                     if (mode == FilterMode.EQUALS) {
                         predicates.add(cb.equal(root.get(param), value));
                     } else if (mode == FilterMode.EQUALS_ORDER_STATUS) {
-                        predicates.add(cb.equal(root.get(param), OrderStatus.valueOf(value)));
+                        List<OrderStatus> matches = canonicalAndLegacyAliases(OrderStatus.valueOf(value));
+                        predicates.add(root.get(param).in(matches));
                     } else if (mode == FilterMode.EQUALS_CUSTOMER_STATUS) {
                         predicates.add(cb.equal(root.get(param), CustomerStatus.valueOf(value)));
                     } else if (mode == FilterMode.EQUALS_LONG) {
@@ -64,6 +65,23 @@ public final class FilterSpecs {
                 return null;
             }
             return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    /**
+     * Returns the canonical status plus any legacy DB values that map to it in API responses.
+     * Mirrors the aliasing in {@code DtoMapper.orderStatusForResponse} and
+     * {@code OrderRepository.findByStoreIdsAndStatus}, so Specification-based filters
+     * (used by OrderController and AdminOrderController) match the same rows.
+     */
+    private static List<OrderStatus> canonicalAndLegacyAliases(OrderStatus status) {
+        return switch (status) {
+            case NEW        -> List.of(OrderStatus.NEW,       OrderStatus.PENDING);
+            case ACCEPTED   -> List.of(OrderStatus.ACCEPTED,  OrderStatus.CONFIRMED);
+            case IN_PROGRESS -> List.of(OrderStatus.IN_PROGRESS, OrderStatus.PROCESSING, OrderStatus.READY, OrderStatus.SHIPPED);
+            case COMPLETED  -> List.of(OrderStatus.COMPLETED, OrderStatus.DELIVERED);
+            case CANCELED   -> List.of(OrderStatus.CANCELED,  OrderStatus.CANCELLED);
+            default         -> List.of(status);
         };
     }
 
