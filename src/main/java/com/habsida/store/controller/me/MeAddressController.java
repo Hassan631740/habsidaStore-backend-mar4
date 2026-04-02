@@ -49,10 +49,10 @@ public class MeAddressController {
      * Link an existing address to the authenticated customer.
      * @param addressId ID of an already-created Address record.
      */
-    @PostMapping
+    @PostMapping("/{addressId}")
     public ResponseEntity<CustomerAddressResponse> addAddress(
             @AuthenticationPrincipal AuthUser authUser,
-            @RequestParam Long addressId) {
+            @PathVariable Long addressId) {
         Customer customer = resolveCustomer(authUser);
         if (!addressRepository.existsById(addressId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Address not found");
