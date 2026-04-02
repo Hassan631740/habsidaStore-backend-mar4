@@ -5,6 +5,7 @@ import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.MerchantOrderRejectRequest;
 import com.habsida.store.dto.request.MerchantOrderStatusRequest;
 import com.habsida.store.dto.response.OrderResponse;
+import com.habsida.store.enums.OrderStatus;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.repository.UserStoreAccessRepository;
@@ -39,7 +40,7 @@ public class MerchantOrderController {
     @GetMapping
     public PageResponse<OrderResponse> findMyOrders(
             @AuthenticationPrincipal AuthUser authUser,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) OrderStatus status,
             Pageable pageable) {
         List<Long> storeIds = merchantStoreIds(authUser.getId());
         if (storeIds.isEmpty()) {
