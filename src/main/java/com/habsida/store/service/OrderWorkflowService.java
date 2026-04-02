@@ -220,6 +220,9 @@ public class OrderWorkflowService {
                     "Cannot move from " + current + " to " + target);
         }
         order.setStatus(target);
+        if (target == OrderStatus.CANCELED) {
+            order.setRejectedAt(Instant.now());
+        }
         return DtoMapper.toResponse(orderRepository.save(order));
     }
 
