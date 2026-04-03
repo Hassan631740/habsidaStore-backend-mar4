@@ -1,12 +1,9 @@
 package com.habsida.store.controller;
 
 import com.habsida.store.dto.PageResponse;
-import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.CustomerRequest;
 import com.habsida.store.dto.response.CustomerResponse;
-import com.habsida.store.entity.Customer;
-import com.habsida.store.enums.CustomerStatus;
-import com.habsida.store.repository.CustomerRepository;
+import com.habsida.store.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -19,52 +16,36 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CustomerController {
 
-    private final CustomerRepository repository;
+    private final CustomerService service;
 
     @GetMapping
     public PageResponse<CustomerResponse> findAll(Pageable pageable) {
-        return PageResponse.of(repository.findAll(pageable).map(DtoMapper::toResponse));
+        return service.findAll(pageable);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<CustomerResponse> findById(@PathVariable Long id) {
-        return repository.findById(id)
-                .map(DtoMapper::toResponse)
+        return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<CustomerResponse> create(@Valid @RequestBody CustomerRequest request) {
-        Customer entity = DtoMapper.toEntity(request);
-        Customer saved = repository.save(entity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<CustomerResponse> update(@PathVariable Long id, @Valid @RequestBody CustomerRequest request) {
-        return repository.findById(id)
-                .map(existing -> {
-                    existing.setUserId(request.getUserId());
-                    existing.setFirstName(request.getFirstName());
-                    existing.setLastName(request.getLastName());
-                    existing.setPhone(request.getPhone());
-                    if (request.getStatus() != null) {
-                        existing.setStatus(request.getStatus());
-                    } else if (existing.getStatus() == null) {
-                        existing.setStatus(CustomerStatus.ACTIVE);
-                    }
-                    return ResponseEntity.ok(DtoMapper.toResponse(repository.save(existing)));
-                })
+        return service.update(id, request)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return service.delete(id)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 }
