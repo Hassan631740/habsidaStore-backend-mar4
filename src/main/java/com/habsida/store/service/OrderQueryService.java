@@ -1,0 +1,117 @@
+package com.habsida.store.service;
+
+import com.habsida.store.dto.DtoMapper;
+import com.habsida.store.dto.PageResponse;
+import com.habsida.store.dto.request.OrderRequest;
+import com.habsida.store.dto.response.OrderResponse;
+import com.habsida.store.entity.Order;
+import com.habsida.store.entity.OrderItem;
+import com.habsida.store.entity.UserStoreAccess;
+import com.habsida.store.exception.ResourceNotFoundException;
+import com.habsida.store.repository.OrderItemRepository;
+import com.habsida.store.repository.OrderRepository;
+import com.habsida.store.repository.UserStoreAccessRepository;
+import com.habsida.store.spec.FilterSpecs;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+@Service
+@RequiredArgsConstructor
+public class OrderQueryService {
+
+    private static final Map<String, FilterSpecs.FilterMode> ORDER_FILTERS = Map.of(
+            "status", FilterSpecs.FilterMode.EQUALS,
+            "customerId", FilterSpecs.FilterMode.EQUALS_LONG
+    );
+
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final UserStoreAccessRepository userStoreAccessRepository;
+
+    // ─── Merchant reads ───────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<Long> getMerchantStoreIds(Long userId) {
+        return userStoreAccessRepository.findByUserId(userId).stream()
+                .map(UserStoreAccess::getStoreId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getMerchantOrders(Long userId, String status, Pageable pageable) {
+        List<Long> storeIds = getMerchantStoreIds(userId);
+        if (storeIds.isEmpty()) {
+            return PageResponse.of(org.springframework.data.domain.Page.empty(pageable));
+        }
+        return PageResponse.of(
+                orderRepository.findByStoreIdsAndStatus(storeIds, status, pageable).map(DtoMapper::toResponse));
+    }
+
+    @Transactional(readOnly = true)
+    public OrderResponse getMerchantOrder(Long userId, Long orderId) {
+        List<Long> storeIds = getMerchantStoreIds(userId);
+        if (storeIds.isEmpty() || orderRepository.countOrderItemsInStores(orderId, storeIds) == 0) {
+            throw new ResourceNotFoundException("Order", orderId);
+        }
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        return DtoMapper.toResponse(order, items);
+    }
+
+    // ─── Admin reads ──────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getAdminOrders(Map<String, String> filter, Pageable pageable) {
+        Specification<Order> spec = FilterSpecs.from(filter, ORDER_FILTERS);
+        Page<Order> page = spec == null ? orderRepository.findAll(pageable) : orderRepository.findAll(spec, pageable);
+        return PageResponse.of(page.map(DtoMapper::toResponse));
+    }
+
+    @Transactional(readOnly = true)
+    public OrderResponse getAdminOrder(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", id));
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        return DtoMapper.toResponse(order, items);
+    }
+
+    // ─── Admin writes ─────────────────────────────────────────────────────────
+
+    @Transactional
+    public OrderResponse createAdminOrder(OrderRequest request) {
+        Order entity = DtoMapper.toEntity(request);
+        Order saved = orderRepository.save(entity);
+        List<OrderItem> items = orderItemRepository.findByOrderId(saved.getId());
+        return DtoMapper.toResponse(saved, items);
+    }
+
+    @Transactional
+    public OrderResponse updateAdminOrder(Long id, OrderRequest request) {
+        Order existing = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", id));
+        Order entity = DtoMapper.toEntity(request);
+        entity.setId(id);
+        Order saved = orderRepository.save(entity);
+        List<OrderItem> items = orderItemRepository.findByOrderId(saved.getId());
+        return DtoMapper.toResponse(saved, items);
+    }
+
+    @Transactional
+    public void deleteAdminOrder(Long id) {
+        if (!orderRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Order", id);
+        }
+        orderRepository.deleteById(id);
+    }
+}
