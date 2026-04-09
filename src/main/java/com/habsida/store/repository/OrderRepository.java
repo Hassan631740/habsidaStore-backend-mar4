@@ -27,4 +27,11 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     @Query("SELECT COUNT(oi) FROM OrderItem oi JOIN oi.product p WHERE oi.orderId = :orderId AND p.storeId IN :storeIds")
     long countOrderItemsInStores(@Param("orderId") Long orderId, @Param("storeIds") List<Long> storeIds);
+
+    /**
+     * True if the order belongs to a merchant: either order.storeId is in the list,
+     * or at least one order item's product belongs to one of the stores.
+     */
+    @Query("SELECT COUNT(o) > 0 FROM Order o WHERE o.id = :orderId AND (o.storeId IN :storeIds OR o.id IN (SELECT oi.orderId FROM OrderItem oi JOIN oi.product p WHERE p.storeId IN :storeIds))")
+    boolean existsByIdAndStoreIds(@Param("orderId") Long orderId, @Param("storeIds") List<Long> storeIds);
 }

@@ -60,7 +60,7 @@ public class OrderQueryService {
     @Transactional(readOnly = true)
     public OrderResponse getMerchantOrder(Long userId, Long orderId) {
         List<Long> storeIds = getMerchantStoreIds(userId);
-        if (storeIds.isEmpty() || orderRepository.countOrderItemsInStores(orderId, storeIds) == 0) {
+        if (storeIds.isEmpty() || !orderRepository.existsByIdAndStoreIds(orderId, storeIds)) {
             throw new ResourceNotFoundException("Order", orderId);
         }
         Order order = orderRepository.findById(orderId)
