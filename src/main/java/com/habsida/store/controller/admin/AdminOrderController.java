@@ -3,7 +3,7 @@ package com.habsida.store.controller.admin;
 import com.habsida.store.dto.PageResponse;
 import com.habsida.store.dto.request.OrderRequest;
 import com.habsida.store.dto.response.OrderResponse;
-import com.habsida.store.service.OrderQueryService;
+import com.habsida.store.service.OrderAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +23,7 @@ import java.util.Map;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminOrderController {
 
-    private final OrderQueryService orderQueryService;
+    private final OrderAdminService orderQueryService;
 
     @GetMapping
     public PageResponse<OrderResponse> findAll(

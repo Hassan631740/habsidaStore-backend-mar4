@@ -11,13 +11,11 @@ import com.habsida.store.dto.response.CustomerResponse;
 import com.habsida.store.entity.Address;
 import com.habsida.store.entity.Customer;
 import com.habsida.store.entity.CustomerAddress;
-import com.habsida.store.entity.UserStoreAccess;
 import com.habsida.store.enums.CustomerStatus;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.AddressRepository;
 import com.habsida.store.repository.CustomerAddressRepository;
 import com.habsida.store.repository.CustomerRepository;
-import com.habsida.store.repository.UserStoreAccessRepository;
 import com.habsida.store.spec.FilterSpecs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -48,7 +45,7 @@ public class CustomerService {
     private final CustomerRepository customerRepository;
     private final AddressRepository addressRepository;
     private final CustomerAddressRepository customerAddressRepository;
-    private final UserStoreAccessRepository userStoreAccessRepository;
+    private final MerchantStoreAccessService merchantStoreAccessService;
 
     // --- Basic CRUD (used by CustomerController) ---
 
@@ -156,7 +153,7 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public PageResponse<CustomerResponse> findCustomersWhoOrderedFromMerchant(Long userId, Long storeId, Pageable pageable) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         if (storeIds.isEmpty()) {
             return PageResponse.of(Page.empty(pageable));
         }
@@ -171,14 +168,6 @@ public class CustomerService {
         return PageResponse.of(
                 customerRepository.findDistinctCustomersWhoOrderedFromStores(storeIds, pageable)
                         .map(DtoMapper::toResponse));
-    }
-
-    private List<Long> getMerchantStoreIds(Long userId) {
-        return userStoreAccessRepository.findByUserId(userId).stream()
-                .map(UserStoreAccess::getStoreId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
     }
 
     private static AdminCustomerDetailResponse toDetail(Customer c, List<AddressResponse> addresses) {

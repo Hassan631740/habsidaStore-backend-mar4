@@ -5,11 +5,9 @@ import com.habsida.store.dto.PageResponse;
 import com.habsida.store.dto.request.ModifierGroupRequest;
 import com.habsida.store.dto.response.ModifierGroupResponse;
 import com.habsida.store.entity.ModifierGroup;
-import com.habsida.store.entity.UserStoreAccess;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.ModifierGroupRepository;
 import com.habsida.store.repository.StoreRepository;
-import com.habsida.store.repository.UserStoreAccessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -26,7 +23,7 @@ public class ModifierGroupService {
 
     private final ModifierGroupRepository repository;
     private final StoreRepository storeRepository;
-    private final UserStoreAccessRepository userStoreAccessRepository;
+    private final MerchantStoreAccessService merchantStoreAccessService;
 
     // --- Basic CRUD (used by ModifierGroupController) ---
 
@@ -128,7 +125,7 @@ public class ModifierGroupService {
 
     @Transactional(readOnly = true)
     public PageResponse<ModifierGroupResponse> findAllForMerchant(Long userId, Pageable pageable) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         if (storeIds.isEmpty()) {
             return PageResponse.of(Page.empty(pageable));
         }
@@ -137,7 +134,7 @@ public class ModifierGroupService {
 
     @Transactional(readOnly = true)
     public ModifierGroupResponse getByIdForMerchant(Long userId, Long id) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         ModifierGroup g = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ModifierGroup", id));
         if (!storeIds.contains(g.getStoreId())) {
@@ -148,7 +145,7 @@ public class ModifierGroupService {
 
     @Transactional
     public ModifierGroupResponse createForMerchant(Long userId, ModifierGroupRequest request) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         if (request.getStoreId() == null || !storeIds.contains(request.getStoreId())) {
             throw new ResourceNotFoundException("Store", request.getStoreId());
         }
@@ -158,7 +155,7 @@ public class ModifierGroupService {
 
     @Transactional
     public ModifierGroupResponse updateForMerchant(Long userId, Long id, ModifierGroupRequest request) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         ModifierGroup existing = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ModifierGroup", id));
         if (!storeIds.contains(existing.getStoreId())) {
@@ -174,7 +171,7 @@ public class ModifierGroupService {
 
     @Transactional
     public void deleteForMerchant(Long userId, Long id) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         ModifierGroup existing = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ModifierGroup", id));
         if (!storeIds.contains(existing.getStoreId())) {
@@ -200,20 +197,12 @@ public class ModifierGroupService {
     /** Verifies a group belongs to one of the merchant's stores (used by ModifierOptionService). */
     @Transactional(readOnly = true)
     public ModifierGroup requireGroupForMerchant(Long userId, Long groupId) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         ModifierGroup g = repository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("ModifierGroup", groupId));
         if (!storeIds.contains(g.getStoreId())) {
             throw new ResourceNotFoundException("ModifierGroup", groupId);
         }
         return g;
-    }
-
-    private List<Long> getMerchantStoreIds(Long userId) {
-        return userStoreAccessRepository.findByUserId(userId).stream()
-                .map(UserStoreAccess::getStoreId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
     }
 }

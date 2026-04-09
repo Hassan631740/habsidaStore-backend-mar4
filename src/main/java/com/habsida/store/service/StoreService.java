@@ -5,11 +5,9 @@ import com.habsida.store.dto.PageResponse;
 import com.habsida.store.dto.request.StoreRequest;
 import com.habsida.store.dto.response.StoreResponse;
 import com.habsida.store.entity.Store;
-import com.habsida.store.entity.UserStoreAccess;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.AddressRepository;
 import com.habsida.store.repository.StoreRepository;
-import com.habsida.store.repository.UserStoreAccessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -26,7 +23,7 @@ public class StoreService {
 
     private final StoreRepository storeRepository;
     private final AddressRepository addressRepository;
-    private final UserStoreAccessRepository userStoreAccessRepository;
+    private final MerchantStoreAccessService merchantStoreAccessService;
 
     @Transactional(readOnly = true)
     public PageResponse<StoreResponse> findAll(Pageable pageable) {
@@ -52,7 +49,7 @@ public class StoreService {
     /** Returns all stores the given user has merchant access to. */
     @Transactional(readOnly = true)
     public PageResponse<StoreResponse> findAllForMerchant(Long userId, Pageable pageable) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         if (storeIds.isEmpty()) {
             return PageResponse.of(Page.empty(pageable));
         }
@@ -62,7 +59,7 @@ public class StoreService {
     /** Returns a specific store only if the user has merchant access to it. */
     @Transactional(readOnly = true)
     public StoreResponse getByIdForMerchant(Long userId, Long id) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         if (!storeIds.contains(id)) {
             throw new ResourceNotFoundException("Store", id);
         }
@@ -96,11 +93,4 @@ public class StoreService {
         storeRepository.deleteById(id);
     }
 
-    private List<Long> getMerchantStoreIds(Long userId) {
-        return userStoreAccessRepository.findByUserId(userId).stream()
-                .map(UserStoreAccess::getStoreId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-    }
 }

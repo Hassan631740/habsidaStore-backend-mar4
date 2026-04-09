@@ -13,7 +13,6 @@ import com.habsida.store.entity.Product;
 import com.habsida.store.enums.CustomerStatus;
 import com.habsida.store.enums.OrderStatus;
 import com.habsida.store.exception.ResourceNotFoundException;
-import com.habsida.store.entity.UserStoreAccess;
 import com.habsida.store.repository.CustomerRepository;
 import com.habsida.store.repository.ModifierOptionRepository;
 import com.habsida.store.repository.OrderItemModifierRepository;
@@ -21,7 +20,6 @@ import com.habsida.store.repository.OrderItemRepository;
 import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.repository.ProductRepository;
 import com.habsida.store.repository.StoreRepository;
-import com.habsida.store.repository.UserStoreAccessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,7 +30,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +42,7 @@ public class OrderWorkflowService {
     private final OrderItemModifierRepository orderItemModifierRepository;
     private final ModifierOptionRepository modifierOptionRepository;
     private final StoreRepository storeRepository;
-    private final UserStoreAccessRepository userStoreAccessRepository;
+    private final MerchantStoreAccessService merchantStoreAccessService;
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request) {
@@ -193,7 +190,7 @@ public class OrderWorkflowService {
 
     @Transactional
     public OrderResponse merchantAccept(Long orderId, Long userId) {
-        List<Long> merchantStoreIds = resolveStoreIds(userId);
+        List<Long> merchantStoreIds = merchantStoreAccessService.getStoreIds(userId);
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
         OrderStatus status = order.getStatus();
         if (status != OrderStatus.NEW && status != OrderStatus.PENDING) {
@@ -208,7 +205,7 @@ public class OrderWorkflowService {
 
     @Transactional
     public OrderResponse merchantReject(Long orderId, Long userId, String rejectReason) {
-        List<Long> merchantStoreIds = resolveStoreIds(userId);
+        List<Long> merchantStoreIds = merchantStoreAccessService.getStoreIds(userId);
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
         OrderStatus status = order.getStatus();
         if (status != OrderStatus.NEW && status != OrderStatus.PENDING) {
@@ -222,7 +219,7 @@ public class OrderWorkflowService {
 
     @Transactional
     public OrderResponse updateStatusAfterAcceptance(Long orderId, OrderStatus target, Long userId) {
-        List<Long> merchantStoreIds = resolveStoreIds(userId);
+        List<Long> merchantStoreIds = merchantStoreAccessService.getStoreIds(userId);
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
         OrderStatus current = order.getStatus();
         if (current == null) {
@@ -235,14 +232,6 @@ public class OrderWorkflowService {
         order.setStatus(target);
         Order saved = orderRepository.save(order);
         return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
-    }
-
-    private List<Long> resolveStoreIds(Long userId) {
-        return userStoreAccessRepository.findByUserId(userId).stream()
-                .map(UserStoreAccess::getStoreId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
     }
 
     private Order loadOrderForFullStoreOwnership(Long orderId, List<Long> merchantStoreIds) {

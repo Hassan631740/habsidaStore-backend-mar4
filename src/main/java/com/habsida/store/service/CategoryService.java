@@ -5,11 +5,9 @@ import com.habsida.store.dto.PageResponse;
 import com.habsida.store.dto.request.CategoryRequest;
 import com.habsida.store.dto.response.CategoryResponse;
 import com.habsida.store.entity.Category;
-import com.habsida.store.entity.UserStoreAccess;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.CategoryRepository;
 import com.habsida.store.repository.StoreRepository;
-import com.habsida.store.repository.UserStoreAccessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -26,7 +23,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final StoreRepository storeRepository;
-    private final UserStoreAccessRepository userStoreAccessRepository;
+    private final MerchantStoreAccessService merchantStoreAccessService;
 
     // --- Basic CRUD (used by CategoryController) ---
 
@@ -128,7 +125,7 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public PageResponse<CategoryResponse> findAllForMerchant(Long userId, Pageable pageable) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         if (storeIds.isEmpty()) {
             return PageResponse.of(Page.empty(pageable));
         }
@@ -137,7 +134,7 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public CategoryResponse getByIdForMerchant(Long userId, Long id) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         Category cat = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));
         if (cat.getStoreId() == null || !storeIds.contains(cat.getStoreId())) {
@@ -148,7 +145,7 @@ public class CategoryService {
 
     @Transactional
     public CategoryResponse createForMerchant(Long userId, CategoryRequest request) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         Long storeId = request.getStoreId();
         if (storeId == null || !storeIds.contains(storeId)) {
             throw new ResourceNotFoundException("Store", storeId);
@@ -160,7 +157,7 @@ public class CategoryService {
 
     @Transactional
     public CategoryResponse updateForMerchant(Long userId, Long id, CategoryRequest request) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         Category existing = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));
         if (existing.getStoreId() == null || !storeIds.contains(existing.getStoreId())) {
@@ -178,20 +175,12 @@ public class CategoryService {
 
     @Transactional
     public void deleteForMerchant(Long userId, Long id) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         Category existing = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));
         if (existing.getStoreId() == null || !storeIds.contains(existing.getStoreId())) {
             throw new ResourceNotFoundException("Category", id);
         }
         categoryRepository.deleteById(id);
-    }
-
-    private List<Long> getMerchantStoreIds(Long userId) {
-        return userStoreAccessRepository.findByUserId(userId).stream()
-                .map(UserStoreAccess::getStoreId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
     }
 }

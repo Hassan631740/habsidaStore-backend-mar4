@@ -6,13 +6,11 @@ import com.habsida.store.dto.request.ProductModifierGroupRequest;
 import com.habsida.store.dto.response.ProductModifierGroupResponse;
 import com.habsida.store.entity.Product;
 import com.habsida.store.entity.ProductModifierGroup;
-import com.habsida.store.entity.UserStoreAccess;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.ModifierGroupRepository;
 import com.habsida.store.repository.ProductModifierGroupRepository;
 import com.habsida.store.repository.ProductRepository;
 import com.habsida.store.repository.StoreRepository;
-import com.habsida.store.repository.UserStoreAccessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -22,7 +20,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +29,7 @@ public class ProductModifierGroupService {
     private final ProductRepository productRepository;
     private final ModifierGroupRepository modifierGroupRepository;
     private final StoreRepository storeRepository;
-    private final UserStoreAccessRepository userStoreAccessRepository;
+    private final MerchantStoreAccessService merchantStoreAccessService;
 
     // --- Basic CRUD (used by ProductModifierGroupController) ---
 
@@ -167,7 +164,7 @@ public class ProductModifierGroupService {
     }
 
     private void ensureProductBelongsToMerchant(Long userId, Long productId) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         Product p = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
         if (!storeIds.contains(p.getStoreId())) {
@@ -176,19 +173,11 @@ public class ProductModifierGroupService {
     }
 
     private void ensureGroupBelongsToMerchant(Long userId, Long groupId) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         var g = modifierGroupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("ModifierGroup", groupId));
         if (!storeIds.contains(g.getStoreId())) {
             throw new ResourceNotFoundException("ModifierGroup", groupId);
         }
-    }
-
-    private List<Long> getMerchantStoreIds(Long userId) {
-        return userStoreAccessRepository.findByUserId(userId).stream()
-                .map(UserStoreAccess::getStoreId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
     }
 }

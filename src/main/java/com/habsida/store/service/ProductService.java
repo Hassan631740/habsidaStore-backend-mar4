@@ -5,11 +5,9 @@ import com.habsida.store.dto.PageResponse;
 import com.habsida.store.dto.request.ProductRequest;
 import com.habsida.store.dto.response.ProductResponse;
 import com.habsida.store.entity.Product;
-import com.habsida.store.entity.UserStoreAccess;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.ProductRepository;
 import com.habsida.store.repository.StoreRepository;
-import com.habsida.store.repository.UserStoreAccessRepository;
 import com.habsida.store.spec.FilterSpecs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.Predicate;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -37,7 +34,7 @@ public class ProductService {
 
     private final ProductRepository repository;
     private final StoreRepository storeRepository;
-    private final UserStoreAccessRepository userStoreAccessRepository;
+    private final MerchantStoreAccessService merchantStoreAccessService;
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> findAll(Pageable pageable, Map<String, String> filter) {
@@ -196,7 +193,7 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> findAllForMerchantUser(Long userId, Long categoryId, Boolean availableForOrder, String q, Pageable pageable) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         Map<String, String> filter = new java.util.HashMap<>();
         if (categoryId != null) filter.put("categoryId", String.valueOf(categoryId));
         if (availableForOrder != null) filter.put("availableForOrder", String.valueOf(availableForOrder));
@@ -206,13 +203,13 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public Optional<ProductResponse> findByIdForMerchant(Long userId, Long id) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         return findById(id).filter(p -> p.getStoreId() != null && storeIds.contains(p.getStoreId()));
     }
 
     @Transactional
     public ProductResponse createForMerchant(Long userId, ProductRequest request) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         if (request.getStoreId() == null || !storeIds.contains(request.getStoreId())) {
             throw new ResourceNotFoundException("Store", request.getStoreId());
         }
@@ -221,7 +218,7 @@ public class ProductService {
 
     @Transactional
     public Optional<ProductResponse> updateForMerchant(Long userId, Long id, ProductRequest request) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         if (request.getStoreId() != null && !storeIds.contains(request.getStoreId())) {
             throw new ResourceNotFoundException("Store", request.getStoreId());
         }
@@ -232,7 +229,7 @@ public class ProductService {
 
     @Transactional
     public Optional<ProductResponse> setOrderingPausedForMerchant(Long userId, Long id, boolean paused) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         return findById(id)
                 .filter(p -> storeIds.contains(p.getStoreId()))
                 .flatMap(p -> setOrderingPaused(id, paused));
@@ -240,18 +237,10 @@ public class ProductService {
 
     @Transactional
     public boolean deleteByIdForMerchant(Long userId, Long id) {
-        List<Long> storeIds = getMerchantStoreIds(userId);
+        List<Long> storeIds = merchantStoreAccessService.getStoreIds(userId);
         if (findById(id).filter(p -> storeIds.contains(p.getStoreId())).isEmpty()) {
             return false;
         }
         return deleteById(id);
-    }
-
-    private List<Long> getMerchantStoreIds(Long userId) {
-        return userStoreAccessRepository.findByUserId(userId).stream()
-                .map(UserStoreAccess::getStoreId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
     }
 }
