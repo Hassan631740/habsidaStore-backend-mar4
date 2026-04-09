@@ -13,10 +13,10 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
     /**
-     * Orders that have at least one order item whose product belongs to one of the given stores,
-     * or orders with store_id in the given list.
+     * Orders that belong to any of the given stores: either order.storeId matches,
+     * or at least one order item's product belongs to one of the stores.
      */
-    @Query("SELECT o FROM Order o WHERE o.id IN (SELECT oi.orderId FROM OrderItem oi JOIN oi.product p WHERE p.storeId IN :storeIds)")
+    @Query("SELECT o FROM Order o WHERE o.storeId IN :storeIds OR o.id IN (SELECT oi.orderId FROM OrderItem oi JOIN oi.product p WHERE p.storeId IN :storeIds)")
     Page<Order> findByStoreIds(@Param("storeIds") List<Long> storeIds, Pageable pageable);
 
     /**

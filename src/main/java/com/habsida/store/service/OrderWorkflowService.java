@@ -49,7 +49,7 @@ public class OrderWorkflowService {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
         if (CustomerStatus.ACTIVE != customer.getStatus()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is suspended");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is not active");
         }
 
         BigDecimal total = BigDecimal.ZERO;
@@ -122,7 +122,7 @@ public class OrderWorkflowService {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
         if (CustomerStatus.ACTIVE != customer.getStatus()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is suspended");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is not active");
         }
 
         BigDecimal total = BigDecimal.ZERO;
