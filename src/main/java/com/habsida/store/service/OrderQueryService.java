@@ -7,6 +7,7 @@ import com.habsida.store.dto.response.OrderResponse;
 import com.habsida.store.entity.Order;
 import com.habsida.store.entity.OrderItem;
 import com.habsida.store.entity.UserStoreAccess;
+import com.habsida.store.enums.OrderStatus;
 import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.OrderItemRepository;
 import com.habsida.store.repository.OrderRepository;
@@ -16,8 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -49,6 +52,13 @@ public class OrderQueryService {
 
     @Transactional(readOnly = true)
     public PageResponse<OrderResponse> getMerchantOrders(Long userId, String status, Pageable pageable) {
+        if (status != null && !status.isEmpty()) {
+            try {
+                OrderStatus.valueOf(status);
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid order status: " + status);
+            }
+        }
         List<Long> storeIds = getMerchantStoreIds(userId);
         if (storeIds.isEmpty()) {
             return PageResponse.of(org.springframework.data.domain.Page.empty(pageable));

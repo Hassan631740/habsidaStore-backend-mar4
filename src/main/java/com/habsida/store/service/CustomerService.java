@@ -109,11 +109,11 @@ public class CustomerService {
     public AdminCustomerDetailResponse getDetailById(Long id) {
         Customer c = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", id));
-        List<AddressResponse> addresses = customerAddressRepository.findByCustomerIdOrderByIdAsc(id).stream()
+        List<Long> addressIds = customerAddressRepository.findByCustomerIdOrderByIdAsc(id).stream()
                 .map(CustomerAddress::getAddressId)
-                .map(addressRepository::findById)
-                .filter(Optional::isPresent)
-                .map(opt -> DtoMapper.toResponse(opt.get()))
+                .collect(Collectors.toList());
+        List<AddressResponse> addresses = addressRepository.findAllById(addressIds).stream()
+                .map(DtoMapper::toResponse)
                 .collect(Collectors.toList());
         return toDetail(c, addresses);
     }
