@@ -100,9 +100,13 @@ public class OrderQueryService {
     public OrderResponse updateAdminOrder(Long id, OrderRequest request) {
         Order existing = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", id));
-        Order entity = DtoMapper.toEntity(request);
-        entity.setId(id);
-        Order saved = orderRepository.save(entity);
+        existing.setStoreId(request.getStoreId());
+        existing.setCustomerId(request.getCustomerId());
+        existing.setStatus(request.getStatus());
+        existing.setOrderType(request.getOrderType());
+        existing.setTotalAmount(request.getTotalAmount());
+        existing.setNotes(request.getNotes());
+        Order saved = orderRepository.save(existing);
         List<OrderItem> items = orderItemRepository.findByOrderId(saved.getId());
         return DtoMapper.toResponse(saved, items);
     }
