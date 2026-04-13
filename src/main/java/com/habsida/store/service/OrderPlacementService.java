@@ -84,7 +84,7 @@ public class OrderPlacementService {
                 .storeId(request.getStoreId())
                 .customerId(request.getCustomerId())
                 .status(OrderStatus.NEW)
-                .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
+                .orderType(request.getOrderType())
                 .totalAmount(total)
                 .build();
         Order saved = orderRepository.save(order);
@@ -137,7 +137,7 @@ public class OrderPlacementService {
                 .storeId(storeId)
                 .customerId(request.getCustomerId())
                 .status(OrderStatus.NEW)
-                .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
+                .orderType(request.getOrderType())
                 .totalAmount(total)
                 .notes(request.getNotes())
                 .build();
