@@ -1,14 +1,10 @@
 package com.habsida.store.controller.merchant;
 
 import com.habsida.store.dto.PageResponse;
-import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.ModifierGroupRequest;
 import com.habsida.store.dto.response.ModifierGroupResponse;
-import com.habsida.store.entity.ModifierGroup;
-import com.habsida.store.exception.ResourceNotFoundException;
-import com.habsida.store.repository.ModifierGroupRepository;
-import com.habsida.store.repository.UserStoreAccessRepository;
 import com.habsida.store.security.AuthUser;
+import com.habsida.store.service.ModifierGroupService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -19,8 +15,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/merchant/modifier-groups")
 @RequiredArgsConstructor
@@ -28,48 +22,28 @@ import java.util.List;
 @Tag(name = "Modifiers", description = "Modifier groups, options, assign groups to products")
 public class MerchantModifierGroupController {
 
-    private final ModifierGroupRepository repository;
-    private final UserStoreAccessRepository userStoreAccessRepository;
-
-    private List<Long> getMerchantStoreIds(Long userId) {
-        return userStoreAccessRepository.findByUserId(userId).stream()
-                .map(usa -> usa.getStoreId())
-                .filter(id -> id != null)
-                .distinct()
-                .toList();
-    }
+    private final ModifierGroupService modifierGroupService;
 
     @GetMapping
     public PageResponse<ModifierGroupResponse> findAll(
             @AuthenticationPrincipal AuthUser authUser,
             Pageable pageable) {
-        List<Long> storeIds = getMerchantStoreIds(authUser.getId());
-        if (storeIds.isEmpty()) {
-            return PageResponse.of(org.springframework.data.domain.Page.empty(pageable));
-        }
-        return PageResponse.of(repository.findByStoreIdIn(storeIds, pageable).map(DtoMapper::toResponse));
+        return modifierGroupService.findAllForMerchant(authUser.getId(), pageable);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ModifierGroupResponse> findById(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long id) {
-        List<Long> storeIds = getMerchantStoreIds(authUser.getId());
-        ModifierGroup g = repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("ModifierGroup", id));
-        if (!storeIds.contains(g.getStoreId())) {
-            throw new ResourceNotFoundException("ModifierGroup", id);
-        }
-        return ResponseEntity.ok(DtoMapper.toResponse(g));
+    public ResponseEntity<ModifierGroupResponse> findById(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(modifierGroupService.getByIdForMerchant(authUser.getId(), id));
     }
 
     @PostMapping
     public ResponseEntity<ModifierGroupResponse> create(
             @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody ModifierGroupRequest request) {
-        List<Long> storeIds = getMerchantStoreIds(authUser.getId());
-        if (request.getStoreId() == null || !storeIds.contains(request.getStoreId())) {
-            throw new ResourceNotFoundException("Store", request.getStoreId());
-        }
-        ModifierGroup entity = DtoMapper.toEntity(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(repository.save(entity)));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(modifierGroupService.createForMerchant(authUser.getId(), request));
     }
 
     @PutMapping("/{id}")
@@ -77,27 +51,14 @@ public class MerchantModifierGroupController {
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long id,
             @Valid @RequestBody ModifierGroupRequest request) {
-        List<Long> storeIds = getMerchantStoreIds(authUser.getId());
-        ModifierGroup existing = repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("ModifierGroup", id));
-        if (!storeIds.contains(existing.getStoreId())) {
-            throw new ResourceNotFoundException("ModifierGroup", id);
-        }
-        if (request.getStoreId() != null && !storeIds.contains(request.getStoreId())) {
-            throw new ResourceNotFoundException("Store", request.getStoreId());
-        }
-        ModifierGroup entity = DtoMapper.toEntity(request);
-        entity.setId(id);
-        return ResponseEntity.ok(DtoMapper.toResponse(repository.save(entity)));
+        return ResponseEntity.ok(modifierGroupService.updateForMerchant(authUser.getId(), id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long id) {
-        List<Long> storeIds = getMerchantStoreIds(authUser.getId());
-        ModifierGroup existing = repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("ModifierGroup", id));
-        if (!storeIds.contains(existing.getStoreId())) {
-            throw new ResourceNotFoundException("ModifierGroup", id);
-        }
-        repository.deleteById(id);
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long id) {
+        modifierGroupService.deleteForMerchant(authUser.getId(), id);
         return ResponseEntity.noContent().build();
     }
 }

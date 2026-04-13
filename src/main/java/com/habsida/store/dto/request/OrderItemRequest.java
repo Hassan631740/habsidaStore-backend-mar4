@@ -25,6 +25,9 @@ public class OrderItemRequest {
     @Positive(message = "Product ID must be positive")
     private Long productId;
 
+    private String productNameSnapshot;
+    private BigDecimal unitPriceSnapshot;
+
     @NotNull(message = "Quantity is required")
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;

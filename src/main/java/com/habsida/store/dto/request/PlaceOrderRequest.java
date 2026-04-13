@@ -43,5 +43,6 @@ public class PlaceOrderRequest {
         @NotNull
         @Positive
         private Integer quantity;
+        private List<@Positive Long> modifierOptionIds;
     }
 }

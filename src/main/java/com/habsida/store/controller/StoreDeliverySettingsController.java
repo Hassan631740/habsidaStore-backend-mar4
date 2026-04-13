@@ -1,11 +1,9 @@
 package com.habsida.store.controller;
 
 import com.habsida.store.dto.PageResponse;
-import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.StoreDeliverySettingsRequest;
 import com.habsida.store.dto.response.StoreDeliverySettingsResponse;
-import com.habsida.store.entity.StoreDeliverySettings;
-import com.habsida.store.repository.StoreDeliverySettingsRepository;
+import com.habsida.store.service.StoreDeliverySettingsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -18,44 +16,36 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class StoreDeliverySettingsController {
 
-    private final StoreDeliverySettingsRepository repository;
+    private final StoreDeliverySettingsService service;
 
     @GetMapping
     public PageResponse<StoreDeliverySettingsResponse> findAll(Pageable pageable) {
-        return PageResponse.of(repository.findAll(pageable).map(DtoMapper::toResponse));
+        return service.findAll(pageable);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<StoreDeliverySettingsResponse> findById(@PathVariable Long id) {
-        return repository.findById(id)
-                .map(DtoMapper::toResponse)
+        return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<StoreDeliverySettingsResponse> create(@Valid @RequestBody StoreDeliverySettingsRequest request) {
-        StoreDeliverySettings entity = DtoMapper.toEntity(request);
-        StoreDeliverySettings saved = repository.save(entity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<StoreDeliverySettingsResponse> update(@PathVariable Long id, @Valid @RequestBody StoreDeliverySettingsRequest request) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        StoreDeliverySettings entity = DtoMapper.toEntity(request);
-        entity.setId(id);
-        return ResponseEntity.ok(DtoMapper.toResponse(repository.save(entity)));
+        return service.update(id, request)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return service.delete(id)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 }

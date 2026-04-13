@@ -48,3 +48,4 @@ spring-boot-*.log
 .classpath
 .settings/
 .vscode/
+src/main/resources/application-local.properties

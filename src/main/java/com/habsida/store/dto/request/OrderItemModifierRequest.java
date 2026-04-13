@@ -20,6 +20,8 @@ public class OrderItemModifierRequest {
     @NotNull(message = "Modifier option ID is required")
     private Long modifierOptionId;
 
+    private String optionNameSnapshot;
+
     @NotNull(message = "Price is required")
     private BigDecimal price;
 }

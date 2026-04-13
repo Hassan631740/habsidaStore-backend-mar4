@@ -21,6 +21,9 @@ public class OrderItemModifier extends BaseEntity {
     @Column(name = "modifier_option_id")
     private Long modifierOptionId;
 
+    @Column(name = "option_name_snapshot", length = 500)
+    private String optionNameSnapshot;
+
     @Column(precision = 19, scale = 4)
     private BigDecimal price;
 

@@ -18,6 +18,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class OrderRequest {
 
+    @Positive(message = "Store ID must be positive")
+    private Long storeId;
+
     @NotNull(message = "Customer ID is required")
     @Positive(message = "Customer ID must be positive")
     private Long customerId;
@@ -29,4 +32,6 @@ public class OrderRequest {
 
     @PositiveOrZero(message = "Total amount must be zero or positive")
     private BigDecimal totalAmount;
+
+    private String notes;
 }

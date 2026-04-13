@@ -1,15 +1,9 @@
 package com.habsida.store.controller.admin;
 
 import com.habsida.store.dto.PageResponse;
-import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.ModifierOptionRequest;
 import com.habsida.store.dto.response.ModifierOptionResponse;
-import com.habsida.store.entity.ModifierGroup;
-import com.habsida.store.entity.ModifierOption;
-import com.habsida.store.exception.ResourceNotFoundException;
-import com.habsida.store.repository.ModifierGroupRepository;
-import com.habsida.store.repository.ModifierOptionRepository;
-import com.habsida.store.repository.StoreRepository;
+import com.habsida.store.service.ModifierOptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -26,27 +20,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Modifiers", description = "Modifier groups, options, assign groups to products")
 public class AdminStoreModifierOptionController {
 
-    private final ModifierOptionRepository optionRepository;
-    private final ModifierGroupRepository groupRepository;
-    private final StoreRepository storeRepository;
-
-    private void ensureGroupBelongsToStore(Long storeId, Long groupId) {
-        if (!storeRepository.existsById(storeId)) {
-            throw new ResourceNotFoundException("Store", storeId);
-        }
-        ModifierGroup g = groupRepository.findById(groupId).orElseThrow(() -> new ResourceNotFoundException("ModifierGroup", groupId));
-        if (!storeId.equals(g.getStoreId())) {
-            throw new ResourceNotFoundException("ModifierGroup", groupId);
-        }
-    }
+    private final ModifierOptionService modifierOptionService;
 
     @GetMapping
     public PageResponse<ModifierOptionResponse> findAll(
             @PathVariable Long storeId,
             @PathVariable Long groupId,
             Pageable pageable) {
-        ensureGroupBelongsToStore(storeId, groupId);
-        return PageResponse.of(optionRepository.findByModifierGroupId(groupId, pageable).map(DtoMapper::toResponse));
+        return modifierOptionService.findByGroupForStore(storeId, groupId, pageable);
     }
 
     @GetMapping("/{id}")
@@ -54,12 +35,7 @@ public class AdminStoreModifierOptionController {
             @PathVariable Long storeId,
             @PathVariable Long groupId,
             @PathVariable Long id) {
-        ensureGroupBelongsToStore(storeId, groupId);
-        ModifierOption opt = optionRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("ModifierOption", id));
-        if (!groupId.equals(opt.getModifierGroupId())) {
-            throw new ResourceNotFoundException("ModifierOption", id);
-        }
-        return ResponseEntity.ok(DtoMapper.toResponse(opt));
+        return ResponseEntity.ok(modifierOptionService.getByIdForStore(storeId, groupId, id));
     }
 
     @PostMapping
@@ -67,13 +43,8 @@ public class AdminStoreModifierOptionController {
             @PathVariable Long storeId,
             @PathVariable Long groupId,
             @Valid @RequestBody ModifierOptionRequest request) {
-        ensureGroupBelongsToStore(storeId, groupId);
-        if (request.getModifierGroupId() != null && !request.getModifierGroupId().equals(groupId)) {
-            throw new IllegalArgumentException("Modifier group ID must match path");
-        }
-        ModifierOption entity = DtoMapper.toEntity(request);
-        entity.setModifierGroupId(groupId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(optionRepository.save(entity)));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(modifierOptionService.createForStore(storeId, groupId, request));
     }
 
     @PutMapping("/{id}")
@@ -82,18 +53,7 @@ public class AdminStoreModifierOptionController {
             @PathVariable Long groupId,
             @PathVariable Long id,
             @Valid @RequestBody ModifierOptionRequest request) {
-        ensureGroupBelongsToStore(storeId, groupId);
-        ModifierOption existing = optionRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("ModifierOption", id));
-        if (!groupId.equals(existing.getModifierGroupId())) {
-            throw new ResourceNotFoundException("ModifierOption", id);
-        }
-        if (request.getModifierGroupId() != null && !request.getModifierGroupId().equals(groupId)) {
-            throw new IllegalArgumentException("Modifier group ID must match path");
-        }
-        ModifierOption entity = DtoMapper.toEntity(request);
-        entity.setId(id);
-        entity.setModifierGroupId(groupId);
-        return ResponseEntity.ok(DtoMapper.toResponse(optionRepository.save(entity)));
+        return ResponseEntity.ok(modifierOptionService.updateForStore(storeId, groupId, id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -101,12 +61,7 @@ public class AdminStoreModifierOptionController {
             @PathVariable Long storeId,
             @PathVariable Long groupId,
             @PathVariable Long id) {
-        ensureGroupBelongsToStore(storeId, groupId);
-        ModifierOption existing = optionRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("ModifierOption", id));
-        if (!groupId.equals(existing.getModifierGroupId())) {
-            throw new ResourceNotFoundException("ModifierOption", id);
-        }
-        optionRepository.deleteById(id);
+        modifierOptionService.deleteForStore(storeId, groupId, id);
         return ResponseEntity.noContent().build();
     }
 }

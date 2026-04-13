@@ -6,6 +6,8 @@ import com.habsida.store.entity.*;
 import com.habsida.store.enums.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
+
 /**
  * Maps between entities and Request/Response DTOs.
  * For Store: after toEntity(StoreRequest), set entity.setAddress(addressRepo.getReferenceById(request.getAddressId())) before save.
@@ -18,14 +20,6 @@ public final class DtoMapper {
         if (v == null || v.isBlank()) return null;
         try { return StoreStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
-    private static OrderStatus safeOrderStatus(String v) {
-        if (v == null || v.isBlank()) return null;
-        try { return OrderStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
-    }
-    private static OrderType safeOrderType(String v) {
-        if (v == null || v.isBlank()) return null;
-        try { return OrderType.valueOf(v); } catch (IllegalArgumentException e) { return null; }
-    }
     private static PaymentMethod safePaymentMethod(String v) {
         if (v == null || v.isBlank()) return null;
         try { return PaymentMethod.valueOf(v); } catch (IllegalArgumentException e) { return null; }
@@ -34,11 +28,6 @@ public final class DtoMapper {
         if (v == null || v.isBlank()) return null;
         try { return PaymentStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
-    private static CustomerStatus safeCustomerStatus(String v) {
-        if (v == null || v.isBlank()) return CustomerStatus.ACTIVE;
-        try { return CustomerStatus.valueOf(v); } catch (IllegalArgumentException e) { return CustomerStatus.ACTIVE; }
-    }
-
     // ---------- Address ----------
     public static AddressResponse toResponse(Address e) {
         if (e == null) return null;
@@ -134,7 +123,7 @@ public final class DtoMapper {
                 .firstName(e.getFirstName())
                 .lastName(e.getLastName())
                 .phone(e.getPhone())
-                .status(safeCustomerStatus(e.getStatus()))
+                .status(e.getStatus())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -147,7 +136,7 @@ public final class DtoMapper {
         e.setFirstName(r.getFirstName());
         e.setLastName(r.getLastName());
         e.setPhone(r.getPhone());
-        e.setStatus(r.getStatus() != null ? r.getStatus().name() : CustomerStatus.ACTIVE.name());
+        e.setStatus(r.getStatus() != null ? r.getStatus() : CustomerStatus.ACTIVE);
         return e;
     }
 
@@ -236,22 +225,35 @@ public final class DtoMapper {
         if (e == null) return null;
         return OrderResponse.builder()
                 .id(e.getId())
+                .storeId(e.getStoreId())
                 .customerId(e.getCustomerId())
-                .status(safeOrderStatus(e.getStatus()))
-                .orderType(safeOrderType(e.getOrderType()))
+                .status(e.getStatus())
+                .orderType(e.getOrderType())
                 .totalAmount(e.getTotalAmount())
+                .acceptedAt(e.getAcceptedAt())
+                .rejectReason(e.getRejectReason())
+                .notes(e.getNotes())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
     }
 
+    public static OrderResponse toResponse(Order e, List<OrderItem> items) {
+        if (e == null) return null;
+        OrderResponse response = toResponse(e);
+        response.setItems(items == null ? null : items.stream().map(DtoMapper::toResponse).toList());
+        return response;
+    }
+
     public static Order toEntity(OrderRequest r) {
         if (r == null) return null;
         Order e = new Order();
+        e.setStoreId(r.getStoreId());
         e.setCustomerId(r.getCustomerId());
-        e.setStatus(r.getStatus() != null ? r.getStatus().name() : null);
-        e.setOrderType(r.getOrderType() != null ? r.getOrderType().name() : null);
+        e.setStatus(r.getStatus());
+        e.setOrderType(r.getOrderType());
         e.setTotalAmount(r.getTotalAmount());
+        e.setNotes(r.getNotes());
         return e;
     }
 
@@ -280,6 +282,8 @@ public final class DtoMapper {
                 .id(e.getId())
                 .orderId(e.getOrderId())
                 .productId(e.getProductId())
+                .productNameSnapshot(e.getProductNameSnapshot())
+                .unitPriceSnapshot(e.getUnitPriceSnapshot())
                 .quantity(e.getQuantity())
                 .price(e.getPrice())
                 .build();
@@ -290,6 +294,8 @@ public final class DtoMapper {
         OrderItem e = new OrderItem();
         e.setOrderId(r.getOrderId());
         e.setProductId(r.getProductId());
+        e.setProductNameSnapshot(r.getProductNameSnapshot());
+        e.setUnitPriceSnapshot(r.getUnitPriceSnapshot());
         e.setQuantity(r.getQuantity());
         e.setPrice(r.getPrice());
         return e;
@@ -302,6 +308,7 @@ public final class DtoMapper {
                 .id(e.getId())
                 .orderItemId(e.getOrderItemId())
                 .modifierOptionId(e.getModifierOptionId())
+                .optionNameSnapshot(e.getOptionNameSnapshot())
                 .price(e.getPrice())
                 .build();
     }
@@ -311,6 +318,7 @@ public final class DtoMapper {
         OrderItemModifier e = new OrderItemModifier();
         e.setOrderItemId(r.getOrderItemId());
         e.setModifierOptionId(r.getModifierOptionId());
+        e.setOptionNameSnapshot(r.getOptionNameSnapshot());
         e.setPrice(r.getPrice());
         return e;
     }
