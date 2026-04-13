@@ -6,6 +6,8 @@ import com.habsida.store.entity.*;
 import com.habsida.store.enums.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
+
 /**
  * Maps between entities and Request/Response DTOs.
  * For Store: after toEntity(StoreRequest), set entity.setAddress(addressRepo.getReferenceById(request.getAddressId())) before save.
@@ -38,10 +40,6 @@ public final class DtoMapper {
             case CANCELLED -> OrderStatus.CANCELED;
             default -> v;
         };
-    }
-    private static OrderType safeOrderType(String v) {
-        if (v == null || v.isBlank()) return null;
-        try { return OrderType.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
     private static PaymentMethod safePaymentMethod(String v) {
         if (v == null || v.isBlank()) return null;
@@ -256,7 +254,7 @@ public final class DtoMapper {
                 .storeId(e.getStoreId())
                 .customerId(e.getCustomerId())
                 .status(orderStatusForResponse(e.getStatus()))
-                .orderType(safeOrderType(e.getOrderType()))
+                .orderType(e.getOrderType())
                 .totalAmount(e.getTotalAmount())
                 .acceptedAt(e.getAcceptedAt())
                 .rejectedAt(e.getRejectedAt())
@@ -267,13 +265,20 @@ public final class DtoMapper {
                 .build();
     }
 
+    public static OrderResponse toResponse(Order e, List<OrderItem> items) {
+        if (e == null) return null;
+        OrderResponse response = toResponse(e);
+        response.setItems(items == null ? null : items.stream().map(DtoMapper::toResponse).toList());
+        return response;
+    }
+
     public static Order toEntity(OrderRequest r) {
         if (r == null) return null;
         Order e = new Order();
         e.setStoreId(r.getStoreId());
         e.setCustomerId(r.getCustomerId());
         e.setStatus(r.getStatus());
-        e.setOrderType(r.getOrderType() != null ? r.getOrderType().name() : null);
+        e.setOrderType(r.getOrderType());
         e.setTotalAmount(r.getTotalAmount());
         e.setNotes(r.getNotes());
         return e;

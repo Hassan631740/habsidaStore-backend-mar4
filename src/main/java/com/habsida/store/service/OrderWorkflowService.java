@@ -43,6 +43,7 @@ public class OrderWorkflowService {
     private final OrderItemModifierRepository orderItemModifierRepository;
     private final ModifierOptionRepository modifierOptionRepository;
     private final StoreRepository storeRepository;
+    private final MerchantStoreAccessService merchantStoreAccessService;
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request, AuthUser authUser) {
@@ -60,8 +61,8 @@ public class OrderWorkflowService {
     private OrderResponse placeOrderForCustomer(PlaceOrderRequest request) {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
-        if (customer.getStatus() != CustomerStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is suspended");
+        if (CustomerStatus.ACTIVE != customer.getStatus()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is not active");
         }
         if (!storeRepository.existsById(request.getStoreId())) {
             throw new ResourceNotFoundException("Store", request.getStoreId());
@@ -69,6 +70,7 @@ public class OrderWorkflowService {
 
         BigDecimal total = BigDecimal.ZERO;
         List<OrderItem> items = new ArrayList<>();
+        List<List<OrderItemModifier>> modifiersPerLine = new ArrayList<>();
         for (PlaceOrderRequest.OrderLineRequest line : request.getLines()) {
             Product p = productRepository.findById(line.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product", line.getProductId()));
@@ -81,28 +83,51 @@ public class OrderWorkflowService {
                         "Product " + line.getProductId() + " is not available for order");
             }
             BigDecimal unit = p.getPrice() != null ? p.getPrice() : BigDecimal.ZERO;
-            total = total.add(unit.multiply(BigDecimal.valueOf(line.getQuantity())));
+            BigDecimal lineTotal = unit.multiply(BigDecimal.valueOf(line.getQuantity()));
+            List<OrderItemModifier> modifiers = new ArrayList<>();
+            if (line.getModifierOptionIds() != null) {
+                for (Long optionId : line.getModifierOptionIds()) {
+                    ModifierOption opt = modifierOptionRepository.findById(optionId)
+                            .orElseThrow(() -> new ResourceNotFoundException("ModifierOption", optionId));
+                    BigDecimal adj = opt.getPriceAdjustment() != null ? opt.getPriceAdjustment() : BigDecimal.ZERO;
+                    lineTotal = lineTotal.add(adj.multiply(BigDecimal.valueOf(line.getQuantity())));
+                    modifiers.add(OrderItemModifier.builder()
+                            .modifierOptionId(opt.getId())
+                            .optionNameSnapshot(opt.getName())
+                            .price(opt.getPriceAdjustment())
+                            .build());
+                }
+            }
+            total = total.add(lineTotal);
             items.add(OrderItem.builder()
                     .productId(p.getId())
                     .productNameSnapshot(p.getName())
                     .unitPriceSnapshot(unit)
                     .quantity(line.getQuantity())
+                    .price(lineTotal)
                     .build());
+            modifiersPerLine.add(modifiers);
         }
 
         Order order = Order.builder()
                 .storeId(request.getStoreId())
                 .customerId(request.getCustomerId())
                 .status(OrderStatus.NEW)
-                .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
+                .orderType(request.getOrderType())
                 .totalAmount(total)
                 .build();
         Order saved = orderRepository.save(order);
-        for (OrderItem oi : items) {
-            oi.setOrderId(saved.getId());
+        items.forEach(oi -> oi.setOrderId(saved.getId()));
+        List<OrderItem> savedItems = orderItemRepository.saveAll(items);
+        List<OrderItemModifier> allModifiers = new ArrayList<>();
+        for (int i = 0; i < savedItems.size(); i++) {
+            for (OrderItemModifier m : modifiersPerLine.get(i)) {
+                m.setOrderItemId(savedItems.get(i).getId());
+                allModifiers.add(m);
+            }
         }
-        orderItemRepository.saveAll(items);
-        return DtoMapper.toResponse(saved);
+        orderItemModifierRepository.saveAll(allModifiers);
+        return DtoMapper.toResponse(saved, savedItems);
     }
 
     @Transactional
@@ -112,8 +137,8 @@ public class OrderWorkflowService {
         }
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
-        if (customer.getStatus() != CustomerStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is suspended");
+        if (CustomerStatus.ACTIVE != customer.getStatus()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is not active");
         }
 
         BigDecimal total = BigDecimal.ZERO;
@@ -152,6 +177,7 @@ public class OrderWorkflowService {
                     .productNameSnapshot(p.getName())
                     .unitPriceSnapshot(unit)
                     .quantity(line.getQuantity())
+                    .price(lineTotal)
                     .build());
             modifiersPerLine.add(modifiers);
         }
@@ -160,39 +186,43 @@ public class OrderWorkflowService {
                 .storeId(storeId)
                 .customerId(request.getCustomerId())
                 .status(OrderStatus.NEW)
-                .orderType(request.getOrderType() != null ? request.getOrderType().name() : null)
+                .orderType(request.getOrderType())
                 .totalAmount(total)
                 .notes(request.getNotes())
                 .build();
         Order saved = orderRepository.save(order);
-        for (int i = 0; i < items.size(); i++) {
-            OrderItem oi = items.get(i);
-            oi.setOrderId(saved.getId());
-            OrderItem savedItem = orderItemRepository.save(oi);
+        items.forEach(oi -> oi.setOrderId(saved.getId()));
+        List<OrderItem> savedItems = orderItemRepository.saveAll(items);
+        List<OrderItemModifier> allModifiers = new ArrayList<>();
+        for (int i = 0; i < savedItems.size(); i++) {
             for (OrderItemModifier m : modifiersPerLine.get(i)) {
-                m.setOrderItemId(savedItem.getId());
-                orderItemModifierRepository.save(m);
+                m.setOrderItemId(savedItems.get(i).getId());
+                allModifiers.add(m);
             }
         }
-        return DtoMapper.toResponse(orderRepository.findById(saved.getId()).orElseThrow());
+        orderItemModifierRepository.saveAll(allModifiers);
+        return DtoMapper.toResponse(saved, savedItems);
     }
 
     @Transactional
-    public OrderResponse merchantAccept(Long orderId, List<Long> merchantStoreIds) {
+    public OrderResponse merchantAccept(Long orderId, Long userId) {
+        List<Long> merchantStoreIds = merchantStoreAccessService.getStoreIds(userId);
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
         OrderStatus status = order.getStatus();
         if (status != OrderStatus.NEW && status != OrderStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be accepted");
         }
-        order.setStatus(OrderStatus.ACCEPTED);
+        order.setStatus(OrderStatus.CONFIRMED);
         order.setAcceptedAt(Instant.now());
         order.setRejectedAt(null);
         order.setRejectReason(null);
-        return DtoMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
     }
 
     @Transactional
-    public OrderResponse merchantReject(Long orderId, List<Long> merchantStoreIds, String rejectReason) {
+    public OrderResponse merchantReject(Long orderId, Long userId, String rejectReason) {
+        List<Long> merchantStoreIds = merchantStoreAccessService.getStoreIds(userId);
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
         OrderStatus status = order.getStatus();
         if (status != OrderStatus.NEW && status != OrderStatus.PENDING) {
@@ -202,11 +232,13 @@ public class OrderWorkflowService {
         order.setAcceptedAt(null);
         order.setRejectedAt(Instant.now());
         order.setRejectReason(rejectReason);
-        return DtoMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
     }
 
     @Transactional
-    public OrderResponse updateStatusAfterAcceptance(Long orderId, OrderStatus target, List<Long> merchantStoreIds) {
+    public OrderResponse updateStatusAfterAcceptance(Long orderId, OrderStatus target, Long userId) {
+        List<Long> merchantStoreIds = merchantStoreAccessService.getStoreIds(userId);
         Order order = loadOrderForFullStoreOwnership(orderId, merchantStoreIds);
         OrderStatus current = order.getStatus();
         if (current == null) {
@@ -220,7 +252,8 @@ public class OrderWorkflowService {
         if (target == OrderStatus.CANCELED) {
             order.setRejectedAt(Instant.now());
         }
-        return DtoMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
     }
 
     private Order loadOrderForFullStoreOwnership(Long orderId, List<Long> merchantStoreIds) {
@@ -229,7 +262,11 @@ public class OrderWorkflowService {
         }
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
-        if (order.getStoreId() != null && merchantStoreIds.contains(order.getStoreId())) {
+        if (order.getStoreId() != null) {
+            if (!merchantStoreIds.contains(order.getStoreId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Order does not belong to your store(s)");
+            }
             return order;
         }
         long totalItems = orderItemRepository.countByOrderId(orderId);

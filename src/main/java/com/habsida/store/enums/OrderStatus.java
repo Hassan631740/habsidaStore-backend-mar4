@@ -6,7 +6,11 @@ package com.habsida.store.enums;
 public enum OrderStatus {
     /** New order; awaiting merchant accept/reject. */
     NEW,
-    /** Placed; awaiting merchant accept/reject (legacy). */
+    /**
+     * Legacy alias for NEW. DB rows may contain this value; the API sets NEW on all new orders.
+     * Do not use for new orders. Will be removed once existing PENDING rows are migrated to NEW.
+     */
+    @Deprecated
     PENDING,
     /** Merchant accepted the order. */
     ACCEPTED,

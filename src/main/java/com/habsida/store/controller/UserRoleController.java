@@ -1,11 +1,9 @@
 package com.habsida.store.controller;
 
 import com.habsida.store.dto.PageResponse;
-import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.UserRoleRequest;
 import com.habsida.store.dto.response.UserRoleResponse;
-import com.habsida.store.entity.UserRole;
-import com.habsida.store.repository.UserRoleRepository;
+import com.habsida.store.service.UserRoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -20,44 +18,36 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class UserRoleController {
 
-    private final UserRoleRepository repository;
+    private final UserRoleService service;
 
     @GetMapping
     public PageResponse<UserRoleResponse> findAll(Pageable pageable) {
-        return PageResponse.of(repository.findAll(pageable).map(DtoMapper::toResponse));
+        return service.findAll(pageable);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserRoleResponse> findById(@PathVariable Long id) {
-        return repository.findById(id)
-                .map(DtoMapper::toResponse)
+        return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<UserRoleResponse> create(@Valid @RequestBody UserRoleRequest request) {
-        UserRole entity = DtoMapper.toEntity(request);
-        UserRole saved = repository.save(entity);
-        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<UserRoleResponse> update(@PathVariable Long id, @Valid @RequestBody UserRoleRequest request) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        UserRole entity = DtoMapper.toEntity(request);
-        entity.setId(id);
-        return ResponseEntity.ok(DtoMapper.toResponse(repository.save(entity)));
+        return service.update(id, request)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return service.delete(id)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 }

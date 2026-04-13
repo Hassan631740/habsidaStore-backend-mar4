@@ -1,16 +1,12 @@
 package com.habsida.store.controller.merchant;
 
 import com.habsida.store.dto.PageResponse;
-import com.habsida.store.dto.DtoMapper;
 import com.habsida.store.dto.request.MerchantOrderRejectRequest;
 import com.habsida.store.dto.request.MerchantOrderStatusRequest;
 import com.habsida.store.dto.response.OrderResponse;
-import com.habsida.store.enums.OrderStatus;
-import com.habsida.store.exception.ResourceNotFoundException;
-import com.habsida.store.repository.OrderRepository;
-import com.habsida.store.repository.UserStoreAccessRepository;
 import com.habsida.store.security.AuthUser;
-import com.habsida.store.service.OrderLifecycleService;
+import com.habsida.store.service.OrderAdminService;
+import com.habsida.store.service.OrderWorkflowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -18,8 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * Merchant-scoped order access. Lists orders that contain items from the merchant's stores. Requires ROLE_MERCHANT.
@@ -30,9 +24,8 @@ import java.util.List;
 @PreAuthorize("hasRole('MERCHANT')")
 public class MerchantOrderController {
 
-    private final OrderRepository orderRepository;
-    private final UserStoreAccessRepository userStoreAccessRepository;
-    private final OrderLifecycleService orderLifecycleService;
+    private final OrderAdminService orderQueryService;
+    private final OrderWorkflowService orderWorkflowService;
 
     /**
      * List orders for the merchant's stores. Optional filter: ?status=NEW (or other OrderStatus).
@@ -40,34 +33,23 @@ public class MerchantOrderController {
     @GetMapping
     public PageResponse<OrderResponse> findMyOrders(
             @AuthenticationPrincipal AuthUser authUser,
-            @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) String status,
             Pageable pageable) {
-        List<Long> storeIds = merchantStoreIds(authUser.getId());
-        if (storeIds.isEmpty()) {
-            return PageResponse.of(org.springframework.data.domain.Page.empty(pageable));
-        }
-        return PageResponse.of(
-                orderRepository.findByStoreIdsAndStatus(storeIds, status, pageable).map(DtoMapper::toResponse));
+        return orderQueryService.getMerchantOrders(authUser.getId(), status, pageable);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> findById(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long id) {
-        List<Long> storeIds = merchantStoreIds(authUser.getId());
-        if (storeIds.isEmpty() || orderRepository.countOrderItemsInStores(id, storeIds) == 0) {
-            throw new ResourceNotFoundException("Order", id);
-        }
-        return ResponseEntity.ok(DtoMapper.toResponse(
-                orderRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Order", id))));
+        return ResponseEntity.ok(orderQueryService.getMerchantOrder(authUser.getId(), id));
     }
 
     @PostMapping("/{id}/accept")
     public ResponseEntity<OrderResponse> accept(
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long id) {
-        List<Long> storeIds = merchantStoreIds(authUser.getId());
-        return ResponseEntity.ok(orderLifecycleService.merchantAccept(id, storeIds));
+        return ResponseEntity.ok(orderWorkflowService.merchantAccept(id, authUser.getId()));
     }
 
     @PostMapping("/{id}/reject")
@@ -75,9 +57,8 @@ public class MerchantOrderController {
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long id,
             @RequestBody(required = false) MerchantOrderRejectRequest body) {
-        List<Long> storeIds = merchantStoreIds(authUser.getId());
         String reason = body != null ? body.getRejectReason() : null;
-        return ResponseEntity.ok(orderLifecycleService.merchantReject(id, storeIds, reason));
+        return ResponseEntity.ok(orderWorkflowService.merchantReject(id, authUser.getId(), reason));
     }
 
     /**
@@ -90,15 +71,6 @@ public class MerchantOrderController {
             @AuthenticationPrincipal AuthUser authUser,
             @PathVariable Long id,
             @Valid @RequestBody MerchantOrderStatusRequest request) {
-        List<Long> storeIds = merchantStoreIds(authUser.getId());
-        return ResponseEntity.ok(orderLifecycleService.updateStatusAfterAcceptance(id, request.getStatus(), storeIds));
-    }
-
-    private List<Long> merchantStoreIds(Long userId) {
-        return userStoreAccessRepository.findByUserId(userId).stream()
-                .map(usa -> usa.getStoreId())
-                .filter(sid -> sid != null)
-                .distinct()
-                .toList();
+        return ResponseEntity.ok(orderWorkflowService.updateStatusAfterAcceptance(id, request.getStatus(), authUser.getId()));
     }
 }

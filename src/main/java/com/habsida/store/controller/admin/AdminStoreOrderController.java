@@ -2,9 +2,7 @@ package com.habsida.store.controller.admin;
 
 import com.habsida.store.dto.request.CreateOrderRequest;
 import com.habsida.store.dto.response.OrderResponse;
-import com.habsida.store.exception.ResourceNotFoundException;
-import com.habsida.store.repository.StoreRepository;
-import com.habsida.store.service.OrderPlacementService;
+import com.habsida.store.service.OrderWorkflowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,17 +20,13 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminStoreOrderController {
 
-    private final StoreRepository storeRepository;
-    private final OrderPlacementService orderPlacementService;
+    private final OrderWorkflowService orderWorkflowService;
 
     @PostMapping
     public ResponseEntity<OrderResponse> create(
             @PathVariable Long storeId,
             @Valid @RequestBody CreateOrderRequest request) {
-        if (!storeRepository.existsById(storeId)) {
-            throw new ResourceNotFoundException("Store", storeId);
-        }
-        OrderResponse created = orderPlacementService.createOrderForStore(storeId, request);
+        OrderResponse created = orderWorkflowService.createOrderForStore(storeId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }
