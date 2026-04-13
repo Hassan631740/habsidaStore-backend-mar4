@@ -40,9 +40,10 @@ public class OrderAdminService {
 
     @Transactional(readOnly = true)
     public PageResponse<OrderResponse> getMerchantOrders(Long userId, String status, Pageable pageable) {
+        OrderStatus orderStatus = null;
         if (status != null && !status.isEmpty()) {
             try {
-                OrderStatus.valueOf(status);
+                orderStatus = OrderStatus.valueOf(status);
             } catch (IllegalArgumentException e) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid order status: " + status);
             }
@@ -52,7 +53,7 @@ public class OrderAdminService {
             return PageResponse.of(Page.empty(pageable));
         }
         return PageResponse.of(
-                orderRepository.findByStoreIdsAndStatus(storeIds, status, pageable).map(DtoMapper::toResponse));
+                orderRepository.findByStoreIdsAndStatus(storeIds, orderStatus, pageable).map(DtoMapper::toResponse));
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +73,7 @@ public class OrderAdminService {
     @Transactional(readOnly = true)
     public PageResponse<OrderResponse> getAdminOrders(Map<String, String> filter, Pageable pageable) {
         Specification<Order> spec = FilterSpecs.from(filter, ORDER_FILTERS);
-        Page<Order> page = spec == null ? orderRepository.findAll(pageable) : orderRepository.findAll(spec, pageable);
+        Page<Order> page = orderRepository.findAll(spec, pageable);
         return PageResponse.of(page.map(DtoMapper::toResponse));
     }
 
