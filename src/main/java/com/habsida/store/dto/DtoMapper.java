@@ -467,6 +467,7 @@ public final class DtoMapper {
                 .name(e.getName())
                 .addressId(addressId)
                 .status(status)
+                .location(e.getLocation())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -477,6 +478,7 @@ public final class DtoMapper {
         Store e = new Store();
         e.setName(r.getName());
         e.setStatus(r.getStatus() != null ? r.getStatus().name() : null);
+        e.setLocation(r.getLocation());
         return e;
     }
 
@@ -507,6 +509,7 @@ public final class DtoMapper {
                 .id(e.getId())
                 .storeId(e.getStoreId())
                 .name(e.getName())
+                .fee(e.getFee())
                 .build();
     }
 
@@ -515,6 +518,7 @@ public final class DtoMapper {
         StoreDeliveryArea e = new StoreDeliveryArea();
         e.setStoreId(r.getStoreId());
         e.setName(r.getName());
+        e.setFee(r.getFee());
         return e;
     }
 
@@ -569,6 +573,7 @@ public final class DtoMapper {
                 .dayOfWeek(e.getDayOfWeek())
                 .openTime(e.getOpenTime())
                 .closeTime(e.getCloseTime())
+                .lastOrderCutoffTime(e.getLastOrderCutoffTime())
                 .build();
     }
 
@@ -579,6 +584,7 @@ public final class DtoMapper {
         e.setDayOfWeek(r.getDayOfWeek());
         e.setOpenTime(r.getOpenTime());
         e.setCloseTime(r.getCloseTime());
+        e.setLastOrderCutoffTime(r.getLastOrderCutoffTime());
         return e;
     }
 

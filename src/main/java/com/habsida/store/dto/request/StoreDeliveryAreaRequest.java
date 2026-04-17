@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,4 +20,6 @@ public class StoreDeliveryAreaRequest {
 
     @NotBlank(message = "Name is required")
     private String name;
+
+    private BigDecimal fee;
 }

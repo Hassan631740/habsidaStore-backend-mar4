@@ -27,6 +27,10 @@ public class StoreHours extends BaseEntity {
     @Column(name = "close_time")
     private LocalTime closeTime;
 
+    /** Orders placed after this time on the same day are deferred to the next opening. */
+    @Column(name = "last_order_cutoff_time")
+    private LocalTime lastOrderCutoffTime;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", insertable = false, updatable = false)

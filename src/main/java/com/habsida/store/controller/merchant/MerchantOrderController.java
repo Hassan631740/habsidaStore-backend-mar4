@@ -3,8 +3,11 @@ package com.habsida.store.controller.merchant;
 import com.habsida.store.dto.PageResponse;
 import com.habsida.store.dto.request.MerchantOrderRejectRequest;
 import com.habsida.store.dto.request.MerchantOrderStatusRequest;
+import com.habsida.store.dto.request.PaymentStatusUpdateRequest;
+import com.habsida.store.dto.response.OrderPaymentResponse;
 import com.habsida.store.dto.response.OrderResponse;
 import com.habsida.store.security.AuthUser;
+import com.habsida.store.service.MerchantPaymentService;
 import com.habsida.store.service.OrderAdminService;
 import com.habsida.store.service.OrderWorkflowService;
 import jakarta.validation.Valid;
@@ -26,6 +29,7 @@ public class MerchantOrderController {
 
     private final OrderAdminService orderQueryService;
     private final OrderWorkflowService orderWorkflowService;
+    private final MerchantPaymentService merchantPaymentService;
 
     /**
      * List orders for the merchant's stores. Optional filter: ?status=NEW (or other OrderStatus).
@@ -72,5 +76,20 @@ public class MerchantOrderController {
             @PathVariable Long id,
             @Valid @RequestBody MerchantOrderStatusRequest request) {
         return ResponseEntity.ok(orderWorkflowService.updateStatusAfterAcceptance(id, request.getStatus(), authUser.getId()));
+    }
+
+    @GetMapping("/{id}/payment")
+    public ResponseEntity<OrderPaymentResponse> getPayment(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(merchantPaymentService.getPaymentForOrder(id, authUser.getId()));
+    }
+
+    @PatchMapping("/{id}/payment")
+    public ResponseEntity<OrderPaymentResponse> updatePaymentStatus(
+            @AuthenticationPrincipal AuthUser authUser,
+            @PathVariable Long id,
+            @Valid @RequestBody PaymentStatusUpdateRequest request) {
+        return ResponseEntity.ok(merchantPaymentService.updatePaymentStatus(id, request.getStatus(), authUser.getId()));
     }
 }

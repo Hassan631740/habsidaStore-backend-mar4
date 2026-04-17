@@ -18,6 +18,7 @@ public class StoreResponse {
     private String name;
     private Long addressId;
     private StoreStatus status;
+    private String location;
     private Instant createdAt;
     private Instant updatedAt;
 }
