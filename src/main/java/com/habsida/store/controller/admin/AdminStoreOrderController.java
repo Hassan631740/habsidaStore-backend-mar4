@@ -2,7 +2,7 @@ package com.habsida.store.controller.admin;
 
 import com.habsida.store.dto.request.CreateOrderRequest;
 import com.habsida.store.dto.response.OrderResponse;
-import com.habsida.store.service.OrderWorkflowService;
+import com.habsida.store.service.OrderPlacementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,13 +20,13 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminStoreOrderController {
 
-    private final OrderWorkflowService orderWorkflowService;
+    private final OrderPlacementService orderPlacementService;
 
     @PostMapping
     public ResponseEntity<OrderResponse> create(
             @PathVariable Long storeId,
             @Valid @RequestBody CreateOrderRequest request) {
-        OrderResponse created = orderWorkflowService.createOrderForStore(storeId, request);
+        OrderResponse created = orderPlacementService.createOrderForStore(storeId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }
