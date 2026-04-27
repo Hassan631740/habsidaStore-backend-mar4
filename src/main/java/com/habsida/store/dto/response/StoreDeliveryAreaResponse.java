@@ -14,4 +14,5 @@ public class StoreDeliveryAreaResponse {
     private Long id;
     private Long storeId;
     private String name;
+    private java.math.BigDecimal fee;
 }

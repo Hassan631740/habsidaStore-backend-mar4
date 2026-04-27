@@ -18,7 +18,10 @@ import java.util.List;
 @AllArgsConstructor
 public class PlaceOrderRequest {
 
-    @NotNull
+    /**
+     * Required when placing as {@code ROLE_ADMIN} (on behalf of a customer).
+     * Omitted or ignored for non-admin callers — the server sets it from the authenticated user's customer profile.
+     */
     @Positive
     private Long customerId;
 

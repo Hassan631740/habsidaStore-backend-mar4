@@ -18,6 +18,9 @@ public class Store extends BaseAuditedEntity {
     /** One of: ACTIVE, INACTIVE, PENDING, CLOSED */
     private String status;
 
+    /** City, district, or free-text location for admin filtering. */
+    private String location;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "address_id")

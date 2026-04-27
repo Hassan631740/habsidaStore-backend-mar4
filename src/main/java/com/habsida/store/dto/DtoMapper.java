@@ -20,6 +20,27 @@ public final class DtoMapper {
         if (v == null || v.isBlank()) return null;
         try { return StoreStatus.valueOf(v); } catch (IllegalArgumentException e) { return null; }
     }
+    /**
+     * Normalizes legacy {@link OrderStatus} values on read so API responses always use canonical names.
+     * The DB may contain PENDING, CONFIRMED, PROCESSING, READY, SHIPPED, DELIVERED, or CANCELLED
+     * for orders created before the lifecycle was simplified. These are mapped to their canonical
+     * equivalents (NEW, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELED) on the way out.
+     * {@code FilterSpecs.canonicalAndLegacyAliases} mirrors this mapping for query-param filtering,
+     * and {@code OrderRepository.findByStoreIdsAndStatus} does the same in JPQL.
+     */
+    private static OrderStatus orderStatusForResponse(OrderStatus v) {
+        if (v == null) {
+            return null;
+        }
+        return switch (v) {
+            case PENDING -> OrderStatus.NEW;
+            case CONFIRMED -> OrderStatus.ACCEPTED;
+            case PROCESSING, READY, SHIPPED -> OrderStatus.IN_PROGRESS;
+            case DELIVERED -> OrderStatus.COMPLETED;
+            case CANCELLED -> OrderStatus.CANCELED;
+            default -> v;
+        };
+    }
     private static PaymentMethod safePaymentMethod(String v) {
         if (v == null || v.isBlank()) return null;
         try { return PaymentMethod.valueOf(v); } catch (IllegalArgumentException e) { return null; }
@@ -115,6 +136,11 @@ public final class DtoMapper {
     }
 
     // ---------- Customer ----------
+    /** API-facing status when the persisted field is null (defaults to ACTIVE). */
+    public static CustomerStatus customerStatusForResponse(CustomerStatus status) {
+        return status != null ? status : CustomerStatus.ACTIVE;
+    }
+
     public static CustomerResponse toResponse(Customer e) {
         if (e == null) return null;
         return CustomerResponse.builder()
@@ -123,7 +149,7 @@ public final class DtoMapper {
                 .firstName(e.getFirstName())
                 .lastName(e.getLastName())
                 .phone(e.getPhone())
-                .status(e.getStatus())
+                .status(customerStatusForResponse(e.getStatus()))
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -136,7 +162,7 @@ public final class DtoMapper {
         e.setFirstName(r.getFirstName());
         e.setLastName(r.getLastName());
         e.setPhone(r.getPhone());
-        e.setStatus(r.getStatus() != null ? r.getStatus() : CustomerStatus.ACTIVE);
+        e.setStatus(customerStatusForResponse(r.getStatus()));
         return e;
     }
 
@@ -227,10 +253,11 @@ public final class DtoMapper {
                 .id(e.getId())
                 .storeId(e.getStoreId())
                 .customerId(e.getCustomerId())
-                .status(e.getStatus())
+                .status(orderStatusForResponse(e.getStatus()))
                 .orderType(e.getOrderType())
                 .totalAmount(e.getTotalAmount())
                 .acceptedAt(e.getAcceptedAt())
+                .rejectedAt(e.getRejectedAt())
                 .rejectReason(e.getRejectReason())
                 .notes(e.getNotes())
                 .createdAt(e.getCreatedAt())
@@ -285,7 +312,7 @@ public final class DtoMapper {
                 .productNameSnapshot(e.getProductNameSnapshot())
                 .unitPriceSnapshot(e.getUnitPriceSnapshot())
                 .quantity(e.getQuantity())
-                .price(e.getPrice())
+                .price(e.getUnitPriceSnapshot())
                 .build();
     }
 
@@ -440,6 +467,7 @@ public final class DtoMapper {
                 .name(e.getName())
                 .addressId(addressId)
                 .status(status)
+                .location(e.getLocation())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -450,6 +478,7 @@ public final class DtoMapper {
         Store e = new Store();
         e.setName(r.getName());
         e.setStatus(r.getStatus() != null ? r.getStatus().name() : null);
+        e.setLocation(r.getLocation());
         return e;
     }
 
@@ -480,6 +509,7 @@ public final class DtoMapper {
                 .id(e.getId())
                 .storeId(e.getStoreId())
                 .name(e.getName())
+                .fee(e.getFee())
                 .build();
     }
 
@@ -488,6 +518,7 @@ public final class DtoMapper {
         StoreDeliveryArea e = new StoreDeliveryArea();
         e.setStoreId(r.getStoreId());
         e.setName(r.getName());
+        e.setFee(r.getFee());
         return e;
     }
 
@@ -542,6 +573,7 @@ public final class DtoMapper {
                 .dayOfWeek(e.getDayOfWeek())
                 .openTime(e.getOpenTime())
                 .closeTime(e.getCloseTime())
+                .lastOrderCutoffTime(e.getLastOrderCutoffTime())
                 .build();
     }
 
@@ -552,6 +584,7 @@ public final class DtoMapper {
         e.setDayOfWeek(r.getDayOfWeek());
         e.setOpenTime(r.getOpenTime());
         e.setCloseTime(r.getCloseTime());
+        e.setLastOrderCutoffTime(r.getLastOrderCutoffTime());
         return e;
     }
 

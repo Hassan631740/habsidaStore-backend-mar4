@@ -24,6 +24,7 @@ public class OrderResponse {
     private OrderType orderType;
     private BigDecimal totalAmount;
     private Instant acceptedAt;
+    private Instant rejectedAt;
     private String rejectReason;
     private String notes;
     private Instant createdAt;

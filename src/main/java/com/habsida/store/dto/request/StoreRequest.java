@@ -27,4 +27,7 @@ public class StoreRequest {
 
     @io.swagger.v3.oas.annotations.media.Schema(example = "ACTIVE")
     private StoreStatus status;
+
+    @io.swagger.v3.oas.annotations.media.Schema(example = "Seoul, Gangnam-gu")
+    private String location;
 }

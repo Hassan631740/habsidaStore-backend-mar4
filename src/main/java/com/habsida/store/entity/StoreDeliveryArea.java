@@ -18,6 +18,9 @@ public class StoreDeliveryArea extends BaseEntity {
 
     private String name;
 
+    @Column(precision = 19, scale = 4)
+    private java.math.BigDecimal fee;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", insertable = false, updatable = false)

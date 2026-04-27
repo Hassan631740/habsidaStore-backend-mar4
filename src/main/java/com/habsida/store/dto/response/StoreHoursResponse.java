@@ -18,4 +18,5 @@ public class StoreHoursResponse {
     private Integer dayOfWeek;
     private LocalTime openTime;
     private LocalTime closeTime;
+    private LocalTime lastOrderCutoffTime;
 }

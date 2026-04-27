@@ -1,5 +1,7 @@
 package com.habsida.store.spec;
 
+import com.habsida.store.enums.CustomerStatus;
+import com.habsida.store.enums.OrderStatus;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -42,6 +44,11 @@ public final class FilterSpecs {
                 try {
                     if (mode == FilterMode.EQUALS) {
                         predicates.add(cb.equal(root.get(param), value));
+                    } else if (mode == FilterMode.EQUALS_ORDER_STATUS) {
+                        List<OrderStatus> matches = canonicalAndLegacyAliases(OrderStatus.valueOf(value));
+                        predicates.add(root.get(param).in(matches));
+                    } else if (mode == FilterMode.EQUALS_CUSTOMER_STATUS) {
+                        predicates.add(cb.equal(root.get(param), CustomerStatus.valueOf(value)));
                     } else if (mode == FilterMode.EQUALS_LONG) {
                         predicates.add(cb.equal(root.get(param), Long.parseLong(value)));
                     } else if (mode == FilterMode.CONTAINS_IGNORE_CASE) {
@@ -61,8 +68,29 @@ public final class FilterSpecs {
         };
     }
 
+    /**
+     * Returns the canonical status plus any legacy DB values that map to it in API responses.
+     * Mirrors the aliasing in {@code DtoMapper.orderStatusForResponse} and
+     * {@code OrderRepository.findByStoreIdsAndStatus}, so Specification-based filters
+     * (used by OrderController and AdminOrderController) match the same rows.
+     */
+    private static List<OrderStatus> canonicalAndLegacyAliases(OrderStatus status) {
+        return switch (status) {
+            case NEW        -> List.of(OrderStatus.NEW,       OrderStatus.PENDING);
+            case ACCEPTED   -> List.of(OrderStatus.ACCEPTED,  OrderStatus.CONFIRMED);
+            case IN_PROGRESS -> List.of(OrderStatus.IN_PROGRESS, OrderStatus.PROCESSING, OrderStatus.READY, OrderStatus.SHIPPED);
+            case COMPLETED  -> List.of(OrderStatus.COMPLETED, OrderStatus.DELIVERED);
+            case CANCELED   -> List.of(OrderStatus.CANCELED,  OrderStatus.CANCELLED);
+            default         -> List.of(status);
+        };
+    }
+
     public enum FilterMode {
         EQUALS,
+        /** Equality on {@link OrderStatus} (query param must match enum constant name). */
+        EQUALS_ORDER_STATUS,
+        /** Equality on {@link CustomerStatus}. */
+        EQUALS_CUSTOMER_STATUS,
         EQUALS_LONG,
         EQUALS_BOOLEAN,
         CONTAINS_IGNORE_CASE

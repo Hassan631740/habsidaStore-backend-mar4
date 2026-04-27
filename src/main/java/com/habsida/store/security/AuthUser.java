@@ -30,6 +30,10 @@ public class AuthUser implements UserDetails, Serializable {
                 .collect(Collectors.toList());
     }
 
+    public boolean isAdmin() {
+        return authorities.stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;

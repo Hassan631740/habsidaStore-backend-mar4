@@ -22,4 +22,5 @@ public class StoreHoursRequest {
 
     private LocalTime openTime;
     private LocalTime closeTime;
+    private LocalTime lastOrderCutoffTime;
 }

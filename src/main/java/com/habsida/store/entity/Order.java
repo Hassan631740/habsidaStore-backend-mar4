@@ -25,6 +25,7 @@ public class Order extends BaseAuditedEntity {
     private Long customerId;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 32)
     private OrderStatus status;
 
     @Column(name = "order_type")
@@ -36,6 +37,9 @@ public class Order extends BaseAuditedEntity {
 
     @Column(name = "accepted_at")
     private Instant acceptedAt;
+
+    @Column(name = "rejected_at")
+    private Instant rejectedAt;
 
     @Column(name = "reject_reason", length = 500)
     private String rejectReason;

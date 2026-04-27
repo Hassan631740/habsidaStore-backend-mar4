@@ -20,6 +20,7 @@ import com.habsida.store.repository.OrderItemRepository;
 import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.repository.ProductRepository;
 import com.habsida.store.repository.StoreRepository;
+import com.habsida.store.security.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-@Service
+// Split into OrderPlacementService and OrderLifecycleService — this class can be deleted.
 @RequiredArgsConstructor
 public class OrderWorkflowService {
 
@@ -45,11 +46,26 @@ public class OrderWorkflowService {
     private final MerchantStoreAccessService merchantStoreAccessService;
 
     @Transactional
-    public OrderResponse placeOrder(PlaceOrderRequest request) {
+    public OrderResponse placeOrder(PlaceOrderRequest request, AuthUser authUser) {
+        Customer linked = customerRepository.findByUserId(authUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "No customer profile for this account"));
+        PlaceOrderRequest effective = PlaceOrderRequest.builder()
+                .customerId(linked.getId())
+                .storeId(request.getStoreId())
+                .orderType(request.getOrderType())
+                .lines(request.getLines())
+                .build();
+        return placeOrderForCustomer(effective);
+    }
+
+    private OrderResponse placeOrderForCustomer(PlaceOrderRequest request) {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", request.getCustomerId()));
         if (CustomerStatus.ACTIVE != customer.getStatus()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Customer account is not active");
+        }
+        if (!storeRepository.existsById(request.getStoreId())) {
+            throw new ResourceNotFoundException("Store", request.getStoreId());
         }
 
         BigDecimal total = BigDecimal.ZERO;
@@ -151,7 +167,7 @@ public class OrderWorkflowService {
                     modifiers.add(OrderItemModifier.builder()
                             .modifierOptionId(opt.getId())
                             .optionNameSnapshot(opt.getName())
-                            .price(opt.getPriceAdjustment())
+                            .price(adj)
                             .build());
                 }
             }
@@ -198,6 +214,7 @@ public class OrderWorkflowService {
         }
         order.setStatus(OrderStatus.CONFIRMED);
         order.setAcceptedAt(Instant.now());
+        order.setRejectedAt(null);
         order.setRejectReason(null);
         Order saved = orderRepository.save(order);
         return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
@@ -212,6 +229,8 @@ public class OrderWorkflowService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only NEW or PENDING orders can be rejected");
         }
         order.setStatus(OrderStatus.REJECTED);
+        order.setAcceptedAt(null);
+        order.setRejectedAt(Instant.now());
         order.setRejectReason(rejectReason);
         Order saved = orderRepository.save(order);
         return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
@@ -230,13 +249,16 @@ public class OrderWorkflowService {
                     "Cannot move from " + current + " to " + target);
         }
         order.setStatus(target);
+        if (target == OrderStatus.CANCELED) {
+            order.setRejectedAt(Instant.now());
+        }
         Order saved = orderRepository.save(order);
         return DtoMapper.toResponse(saved, orderItemRepository.findByOrderId(saved.getId()));
     }
 
     private Order loadOrderForFullStoreOwnership(Long orderId, List<Long> merchantStoreIds) {
         if (merchantStoreIds == null || merchantStoreIds.isEmpty()) {
-            throw new ResourceNotFoundException("Order", orderId);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Merchant has no assigned stores");
         }
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
@@ -263,20 +285,24 @@ public class OrderWorkflowService {
      * After placement: NEW/PENDING → accept/reject only. Then CONFIRMED → … → DELIVERED, or CANCELLED from most states.
      */
     private static boolean isAllowedStatusTransition(OrderStatus from, OrderStatus to) {
-        if (from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.REJECTED) {
+        // Only allow merchant PATCH transitions in the public lifecycle:
+        // NEW → CANCELED (optional), ACCEPTED → IN_PROGRESS → COMPLETED, and CANCELED from NEW/ACCEPTED/IN_PROGRESS.
+        if (from == OrderStatus.CANCELED || from == OrderStatus.CANCELLED) {
             return false;
         }
-        if (from == OrderStatus.DELIVERED) {
-            return false;
+        if (to == OrderStatus.CANCELED) {
+            return from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.ACCEPTED || from == OrderStatus.IN_PROGRESS;
         }
-        if (to == OrderStatus.CANCELLED) {
-            return from != OrderStatus.DELIVERED && from != OrderStatus.REJECTED;
+        if (from == OrderStatus.NEW || from == OrderStatus.PENDING || from == OrderStatus.REJECTED || from == OrderStatus.COMPLETED) {
+            return false;
         }
         return switch (from) {
-            case CONFIRMED -> to == OrderStatus.PROCESSING;
-            case PROCESSING -> to == OrderStatus.READY;
-            case READY -> to == OrderStatus.SHIPPED;
-            case SHIPPED -> to == OrderStatus.DELIVERED;
+            case ACCEPTED -> to == OrderStatus.IN_PROGRESS;
+            case IN_PROGRESS -> to == OrderStatus.COMPLETED;
+            // Legacy states: treat them as in-progress for transition purposes.
+            case CONFIRMED -> (to == OrderStatus.IN_PROGRESS || to == OrderStatus.COMPLETED);
+            case PROCESSING, READY, SHIPPED -> to == OrderStatus.COMPLETED;
+            case DELIVERED -> false;
             default -> false;
         };
     }
