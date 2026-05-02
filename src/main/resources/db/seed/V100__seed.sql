@@ -206,8 +206,8 @@ WHERE s.name = 'Coffee House' AND u.email = 'customer@habsida.com'
   AND NOT EXISTS (
       SELECT 1 FROM orders o WHERE o.store_id = s.id AND o.customer_id = c.id AND o.total_amount = 5.00);
 
-INSERT INTO order_items (order_id, product_id, product_name_snapshot, unit_price_snapshot, quantity, created_at, updated_at)
-SELECT o.id, p.id, p.name, p.price, 2, NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour'
+INSERT INTO order_items (order_id, product_id, product_name_snapshot, unit_price_snapshot, quantity)
+SELECT o.id, p.id, p.name, p.price, 2
 FROM orders o
 JOIN stores s ON s.id = o.store_id
 JOIN products p ON p.store_id = s.id AND p.name = 'Espresso'
@@ -223,16 +223,16 @@ WHERE s.name = 'Tea Garden' AND u.email = 'customer@habsida.com'
   AND NOT EXISTS (
       SELECT 1 FROM orders o WHERE o.store_id = s.id AND o.customer_id = c.id AND o.total_amount = 7.00);
 
-INSERT INTO order_items (order_id, product_id, product_name_snapshot, unit_price_snapshot, quantity, created_at, updated_at)
-SELECT o.id, p.id, p.name, p.price, 1, NOW() - INTERVAL '45 minutes', NOW() - INTERVAL '45 minutes'
+INSERT INTO order_items (order_id, product_id, product_name_snapshot, unit_price_snapshot, quantity)
+SELECT o.id, p.id, p.name, p.price, 1
 FROM orders o
 JOIN stores s ON s.id = o.store_id
 JOIN products p ON p.store_id = s.id AND p.name = 'Matcha Latte'
 WHERE s.name = 'Tea Garden' AND o.total_amount = 7.00
   AND NOT EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = o.id AND oi.product_id = p.id);
 
-INSERT INTO order_items (order_id, product_id, product_name_snapshot, unit_price_snapshot, quantity, created_at, updated_at)
-SELECT o.id, p.id, p.name, p.price, 1, NOW() - INTERVAL '45 minutes', NOW() - INTERVAL '45 minutes'
+INSERT INTO order_items (order_id, product_id, product_name_snapshot, unit_price_snapshot, quantity)
+SELECT o.id, p.id, p.name, p.price, 1
 FROM orders o
 JOIN stores s ON s.id = o.store_id
 JOIN products p ON p.store_id = s.id AND p.name = 'Scone'
