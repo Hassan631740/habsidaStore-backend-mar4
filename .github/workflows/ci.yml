@@ -10,6 +10,21 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: habsida_store
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,7 +39,8 @@ jobs:
       - name: Build and run all tests
         run: mvn -B verify
         env:
-          # Testcontainers uses the Docker daemon available on ubuntu-latest runners.
-          # Ryuk is enabled by default; no extra config needed.
           SPRING_PROFILES_ACTIVE: local
+          DATABASE_URL: jdbc:postgresql://localhost:5432/habsida_store
+          DATABASE_USERNAME: postgres
+          DATABASE_PASSWORD: postgres
           JWT_SECRET: ci-secret-at-least-32-characters-long-for-tests
