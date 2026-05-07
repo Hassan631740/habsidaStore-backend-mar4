@@ -22,7 +22,7 @@ jobs:
           cache: maven
 
       - name: Build and run all tests
-        run: ./mvnw -B verify
+        run: mvn -B verify
         env:
           # Testcontainers uses the Docker daemon available on ubuntu-latest runners.
           # Ryuk is enabled by default; no extra config needed.
