@@ -6,6 +6,8 @@ import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.security.AuthUser;
 import com.habsida.store.service.MerchantStoreAccessService;
 import com.habsida.store.service.StoreSettingsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Merchant endpoints for store settings. Merchant can only manage stores they have access to.
- * Requires ROLE_MERCHANT.
- */
 @RestController
 @RequestMapping("/api/merchant/settings/{storeId}")
 @RequiredArgsConstructor
@@ -30,8 +28,8 @@ public class MerchantStoreSettingsController {
     private final StoreSettingsService settingsService;
     private final MerchantStoreAccessService merchantStoreAccessService;
 
-    // ---- Delivery Settings ----
-
+    @Operation(summary = "Get delivery settings for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping("/delivery")
     public ResponseEntity<StoreDeliverySettingsResponse> getDeliverySettings(
             @AuthenticationPrincipal AuthUser authUser,
@@ -40,6 +38,8 @@ public class MerchantStoreSettingsController {
         return ResponseEntity.ok(settingsService.getDeliverySettings(storeId));
     }
 
+    @Operation(summary = "Create or update delivery settings for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @PutMapping("/delivery")
     public ResponseEntity<StoreDeliverySettingsResponse> upsertDeliverySettings(
             @AuthenticationPrincipal AuthUser authUser,
@@ -49,8 +49,8 @@ public class MerchantStoreSettingsController {
         return ResponseEntity.ok(settingsService.upsertDeliverySettings(storeId, request));
     }
 
-    // ---- Delivery Areas ----
-
+    @Operation(summary = "Get delivery areas for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping("/areas")
     public ResponseEntity<List<StoreDeliveryAreaResponse>> getDeliveryAreas(
             @AuthenticationPrincipal AuthUser authUser,
@@ -59,6 +59,8 @@ public class MerchantStoreSettingsController {
         return ResponseEntity.ok(settingsService.getDeliveryAreas(storeId));
     }
 
+    @Operation(summary = "Replace all delivery areas for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @PutMapping("/areas")
     public ResponseEntity<List<StoreDeliveryAreaResponse>> replaceDeliveryAreas(
             @AuthenticationPrincipal AuthUser authUser,
@@ -68,8 +70,8 @@ public class MerchantStoreSettingsController {
         return ResponseEntity.ok(settingsService.replaceDeliveryAreas(storeId, requests));
     }
 
-    // ---- Delivery Restrictions ----
-
+    @Operation(summary = "Get delivery restrictions for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping("/restrictions")
     public ResponseEntity<List<StoreDeliveryRestrictionResponse>> getDeliveryRestrictions(
             @AuthenticationPrincipal AuthUser authUser,
@@ -78,6 +80,8 @@ public class MerchantStoreSettingsController {
         return ResponseEntity.ok(settingsService.getDeliveryRestrictions(storeId));
     }
 
+    @Operation(summary = "Replace all delivery restrictions for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @PutMapping("/restrictions")
     public ResponseEntity<List<StoreDeliveryRestrictionResponse>> replaceDeliveryRestrictions(
             @AuthenticationPrincipal AuthUser authUser,
@@ -87,8 +91,8 @@ public class MerchantStoreSettingsController {
         return ResponseEntity.ok(settingsService.replaceDeliveryRestrictions(storeId, requests));
     }
 
-    // ---- Work Hours ----
-
+    @Operation(summary = "Get work hours for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping("/hours")
     public ResponseEntity<List<StoreHoursResponse>> getWorkHours(
             @AuthenticationPrincipal AuthUser authUser,
@@ -97,6 +101,8 @@ public class MerchantStoreSettingsController {
         return ResponseEntity.ok(settingsService.getWorkHours(storeId));
     }
 
+    @Operation(summary = "Replace all work hours for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @PutMapping("/hours")
     public ResponseEntity<List<StoreHoursResponse>> replaceWorkHours(
             @AuthenticationPrincipal AuthUser authUser,
@@ -106,8 +112,8 @@ public class MerchantStoreSettingsController {
         return ResponseEntity.ok(settingsService.replaceWorkHours(storeId, requests));
     }
 
-    // ---- Breaks ----
-
+    @Operation(summary = "Get break schedules for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping("/breaks")
     public ResponseEntity<List<StoreBreaksResponse>> getBreaks(
             @AuthenticationPrincipal AuthUser authUser,
@@ -116,6 +122,8 @@ public class MerchantStoreSettingsController {
         return ResponseEntity.ok(settingsService.getBreaks(storeId));
     }
 
+    @Operation(summary = "Replace all break schedules for the merchant's store")
+    @ApiResponse(responseCode = "200", description = "OK")
     @PutMapping("/breaks")
     public ResponseEntity<List<StoreBreaksResponse>> replaceBreaks(
             @AuthenticationPrincipal AuthUser authUser,
