@@ -6,10 +6,6 @@ import com.habsida.store.exception.ResourceNotFoundException;
 import com.habsida.store.repository.ProductRepository;
 import com.habsida.store.repository.StoreRepository;
 import com.habsida.store.service.ProductService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -23,18 +19,13 @@ import java.util.Map;
  */
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "Catalog", description = "Public read-only store and product browsing (no auth required)")
 public class CatalogProductController {
 
     private final ProductRepository productRepository;
     private final StoreRepository storeRepository;
     private final ProductService productService;
 
-    @Operation(summary = "List products for a store (filterable by ?q=, ?categoryId=, ?availableForOrder=)")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "OK"),
-        @ApiResponse(responseCode = "404", description = "Store not found")
-    })
+    /** List all available products for a store. Supports ?q=, ?categoryId=, ?availableForOrder= filters. */
     @GetMapping("/api/catalog/stores/{storeId}/products")
     public PageResponse<ProductResponse> findByStore(
             @PathVariable Long storeId,
@@ -46,11 +37,7 @@ public class CatalogProductController {
         return productService.findAllForStores(java.util.List.of(storeId), pageable, filter);
     }
 
-    @Operation(summary = "Get a single product by ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "OK"),
-        @ApiResponse(responseCode = "404", description = "Not found")
-    })
+    /** Get a single product by ID regardless of store context. */
     @GetMapping("/api/catalog/products/{id}")
     public ResponseEntity<ProductResponse> findById(@PathVariable Long id) {
         return productService.findById(id)

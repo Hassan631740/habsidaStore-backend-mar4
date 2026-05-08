@@ -8,10 +8,6 @@ import com.habsida.store.repository.AddressRepository;
 import com.habsida.store.repository.CustomerAddressRepository;
 import com.habsida.store.repository.CustomerRepository;
 import com.habsida.store.security.AuthUser;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +18,14 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/**
+ * Customer self-service address management. All operations are scoped to the authenticated customer.
+ * Requires ROLE_CUSTOMER — enforced both here and at the SecurityConfig route level (/api/me/**).
+ */
 @RestController
 @RequestMapping("/api/me/addresses")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('CUSTOMER')")
-@Tag(name = "Customer Addresses", description = "Customer: manage own delivery addresses")
 public class MeAddressController {
 
     private final CustomerRepository customerRepository;
@@ -38,8 +37,7 @@ public class MeAddressController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "No customer profile for this account"));
     }
 
-    @Operation(summary = "List all addresses linked to the authenticated customer")
-    @ApiResponse(responseCode = "200", description = "OK")
+    /** List all addresses linked to the authenticated customer. */
     @GetMapping
     public List<CustomerAddressResponse> findAll(@AuthenticationPrincipal AuthUser authUser) {
         Customer customer = resolveCustomer(authUser);
@@ -47,11 +45,10 @@ public class MeAddressController {
                 .stream().map(DtoMapper::toResponse).toList();
     }
 
-    @Operation(summary = "Link an existing address to the authenticated customer")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Linked"),
-        @ApiResponse(responseCode = "404", description = "Address not found")
-    })
+    /**
+     * Link an existing address to the authenticated customer.
+     * @param addressId ID of an already-created Address record.
+     */
     @PostMapping("/{addressId}")
     public ResponseEntity<CustomerAddressResponse> addAddress(
             @AuthenticationPrincipal AuthUser authUser,
@@ -67,12 +64,7 @@ public class MeAddressController {
         return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toResponse(saved));
     }
 
-    @Operation(summary = "Unlink an address from the authenticated customer")
-    @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Unlinked"),
-        @ApiResponse(responseCode = "403", description = "Address belongs to a different customer"),
-        @ApiResponse(responseCode = "404", description = "Address link not found")
-    })
+    /** Unlink an address from the authenticated customer. Returns 403 if the link belongs to another customer. */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> removeAddress(
             @AuthenticationPrincipal AuthUser authUser,

@@ -9,12 +9,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+/**
+ * Merchant-scoped store access. Lists only stores the current user has access to. Requires ROLE_MERCHANT.
+ */
 @RestController
 @RequestMapping("/api/merchant/stores")
 @RequiredArgsConstructor
@@ -24,8 +24,6 @@ public class MerchantStoreController {
 
     private final StoreService storeService;
 
-    @Operation(summary = "List stores assigned to the authenticated merchant")
-    @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping
     public PageResponse<StoreResponse> findMyStores(
             @AuthenticationPrincipal AuthUser authUser,
@@ -33,12 +31,6 @@ public class MerchantStoreController {
         return storeService.findAllForMerchant(authUser.getId(), pageable);
     }
 
-    @Operation(summary = "Get a store by ID (must belong to the authenticated merchant)")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "OK"),
-        @ApiResponse(responseCode = "403", description = "Store not assigned to this merchant"),
-        @ApiResponse(responseCode = "404", description = "Not found")
-    })
     @GetMapping("/{id}")
     public ResponseEntity<StoreResponse> findById(
             @AuthenticationPrincipal AuthUser authUser,

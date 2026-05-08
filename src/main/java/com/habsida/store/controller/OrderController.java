@@ -11,10 +11,6 @@ import com.habsida.store.repository.OrderRepository;
 import com.habsida.store.security.AuthUser;
 import com.habsida.store.service.OrderPlacementService;
 import com.habsida.store.spec.FilterSpecs;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,7 +34,6 @@ import java.util.Map;
 @RequestMapping("/api/me/orders")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('CUSTOMER')")
-@Tag(name = "Customer Orders", description = "Customer: place and view own orders")
 public class OrderController {
 
     private static final Map<String, FilterSpecs.FilterMode> ORDER_FILTERS = Map.of(
@@ -54,13 +49,6 @@ public class OrderController {
      * Create a single-store order from line items. Status starts as NEW (merchant accept/reject).
      * {@code customerId} is resolved from the JWT-linked customer; any value in the body is ignored.
      */
-    @Operation(summary = "Place a new order")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Order created"),
-        @ApiResponse(responseCode = "400", description = "Validation error or inactive customer"),
-        @ApiResponse(responseCode = "401", description = "Unauthorised"),
-        @ApiResponse(responseCode = "403", description = "No customer profile linked to this account")
-    })
     @PostMapping("/place")
     public ResponseEntity<OrderResponse> place(
             @AuthenticationPrincipal AuthUser authUser,
@@ -68,12 +56,6 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderPlacementService.placeOrder(request, authUser));
     }
 
-    @Operation(summary = "List own orders (paginated, filterable by status)")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "OK"),
-        @ApiResponse(responseCode = "401", description = "Unauthorised"),
-        @ApiResponse(responseCode = "403", description = "Forbidden")
-    })
     @GetMapping
     public PageResponse<OrderResponse> findAll(
             @AuthenticationPrincipal AuthUser authUser,
@@ -91,13 +73,6 @@ public class OrderController {
         return PageResponse.of(page.map(DtoMapper::toResponse));
     }
 
-    @Operation(summary = "Get a single own order by ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "OK"),
-        @ApiResponse(responseCode = "401", description = "Unauthorised"),
-        @ApiResponse(responseCode = "403", description = "Forbidden — order belongs to a different customer"),
-        @ApiResponse(responseCode = "404", description = "Order not found")
-    })
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> findById(
             @AuthenticationPrincipal AuthUser authUser,

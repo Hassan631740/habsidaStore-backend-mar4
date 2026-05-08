@@ -8,14 +8,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
+/**
+ * Admin: assign or remove merchant (user) to/from a store. RBAC: gives the user access to manage that store's catalog.
+ */
 @RestController
 @RequestMapping("/api/admin/stores/{storeId}/merchants")
 @RequiredArgsConstructor
@@ -25,18 +25,11 @@ public class AdminStoreMerchantController {
 
     private final UserStoreAccessService userStoreAccessService;
 
-    @Operation(summary = "List merchant users assigned to a store")
-    @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping
     public List<UserStoreAccessResponse> listAssigned(@PathVariable Long storeId) {
         return userStoreAccessService.listByStore(storeId);
     }
 
-    @Operation(summary = "Assign a merchant user to a store")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Assigned"),
-        @ApiResponse(responseCode = "404", description = "Store or user not found")
-    })
     @PostMapping
     public ResponseEntity<UserStoreAccessResponse> assignMerchant(
             @PathVariable Long storeId,
@@ -45,11 +38,6 @@ public class AdminStoreMerchantController {
                 .body(userStoreAccessService.assignMerchant(storeId, request));
     }
 
-    @Operation(summary = "Remove a merchant user from a store")
-    @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Removed"),
-        @ApiResponse(responseCode = "404", description = "Not found")
-    })
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> unassignMerchant(@PathVariable Long storeId, @PathVariable Long userId) {
         userStoreAccessService.unassignMerchant(storeId, userId);
